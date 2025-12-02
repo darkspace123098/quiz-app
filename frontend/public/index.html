@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quiz App</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #ecf0f3;
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 500px;
+      animation: fadeIn 0.5s ease;
+    }
+
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #2980b9;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .question-block {
+      margin-top: 20px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    #timer {
+      text-align: right;
+      font-weight: bold;
+      color: #e74c3c;
+    }
+
+    .loading {
+      text-align: center;
+    }
+
+    .loading img {
+      width: 50px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="startScreen">
+  <h2>Login to Start Quiz</h2>
+
+  <div id="rulesBox" style="text-align: left; font-size: 14px; margin-bottom: 20px;">
+    <h4>Rules and Regulations:</h4>
+    <ul>
+     <li>Each student can attempt the quiz only once.</li>
+    <li>Total time for the quiz is 3 minutes.</li>
+    <li>Do not switch tabs or minimize the window—doing so will auto-submit the quiz.</li>
+    <li>Select the best answer for each question before clicking "Next".</li>
+    <li>Quiz will auto-submit once the timer ends.</li>
+    <li><strong>Use only mouse</strong> (keyboard use is not allowed).</li>
+    <li><strong>You cannot go back to the previous question once you click Next.</strong></li>
+   </ul>
+    <label><input type="checkbox" id="agreeRules" /> I have read and agree to the rules</label>
+  </div>
+
+  <input type="text" id="studentusn" placeholder="Your USN" />
+  <button onclick="startQuiz()">Start Quiz</button>
+</div>
+
+
+  <div class="container hidden" id="quizScreen">
+    <h2>Quiz</h2>
+    <p id="name"></p>
+    <p id="timer">Time Left: 03:00</p>
+    <div id="questionContainer" class="question-block"></div>
+    <button id="nextBtn" onclick="nextQuestion()">Next</button>
+  </div>
+
+  <div class="container hidden" id="resultScreen">
+    <h2>Result</h2>
+    <p id="resultMessage"></p>
+  </div>
+
+  <div class="container hidden" id="loadingScreen">
+    <div class="loading">
+      <img src="https://i.gifer.com/ZZ5H.gif" alt="Loading..." />
+      <p>Loading quiz...</p>
+    </div>
+  </div>
+
+  <script>
+    let studentName = '';
+    let studentUSN = '';
+    let quizSubmitted = false;
+    let questions = [];
+    let answers = {};
+    let currentQuestionIndex = 0;
+    let timerInterval;
+    let timeLeft = 300; // 3 minutes
+let violationCount = 0;
+const API_BASE = `${window.location.origin}/api/quiz`;
+
+    function startQuiz() {
+      // studentName = document.getElementById("studentName").value.trim();
+      studentUSN = document.getElementById("studentusn").value.trim();
+      const agreed = document.getElementById("agreeRules").checked;
+
+      if (!studentUSN || !agreed) {
+        return alert("Please enter your USN and agree to the rules before starting the quiz.");
+      }
+
+      document.getElementById("startScreen").classList.add("hidden");
+      document.getElementById("loadingScreen").classList.remove("hidden");
+
+      fetch(`${API_BASE}/random?usn=${studentUSN}`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("loadingScreen").classList.add("hidden");
+          if (data.error) {
+            alert(data.error);
+            document.getElementById("startScreen").classList.remove("hidden");
+          } else {
+            console.log(data)
+            questions = data.questions;
+           document.getElementById("name").textContent = data.name;
+openFullscreen();
+            currentQuestionIndex = 0;
+            renderQuestion();
+            startTimer();
+            document.getElementById("quizScreen").classList.remove("hidden");
+          }
+        })
+        .catch((err) => {
+          alert("Failed to load quiz.");
+          console.log(err)
+          document.getElementById("startScreen").classList.remove("hidden");
+          document.getElementById("loadingScreen").classList.add("hidden");
+        });
+    }
+function openFullscreen() {
+  let elem = document.documentElement; // whole page
+
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.webkitRequestFullscreen) { // Safari
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) { // IE11
+    elem.msRequestFullscreen();
+  }
+}
+    function renderQuestion() {
+      const questionObj = questions[currentQuestionIndex];
+      const questionContainer = document.getElementById('questionContainer');
+      questionContainer.innerHTML = '';
+
+      const questionText = document.createElement('h3');
+      questionText.textContent = (currentQuestionIndex+1+".")+questionObj.
+questionText;
+      questionContainer.appendChild(questionText);
+
+      questionObj.options.forEach((option, index) => {
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'answer';
+        input.value = option;
+        input.id = `option${index}`;
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(` ${option}`));
+        questionContainer.appendChild(label);
+      });
+    }
+
+    function nextQuestion() {
+  const selected = document.querySelector('input[name="answer"]:checked');
+
+  const qid = questions[currentQuestionIndex]._id;
+  answers[qid] = selected ? selected.value : ""; // Store empty string if not answered
+
+  if (currentQuestionIndex === questions.length - 1) {
+    submitQuiz();
+  } else {
+    currentQuestionIndex++;
+    renderQuestion();
+  }
+}
+
+
+    function submitQuiz() {
+      if (quizSubmitted) return;
+      quizSubmitted = true;
+      clearInterval(timerInterval);
+
+      document.getElementById("quizScreen").classList.add("hidden");
+      document.getElementById("loadingScreen").classList.remove("hidden");
+
+      fetch(API_BASE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: studentName,
+          usn: studentUSN,
+          responses: answers
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("loadingScreen").classList.add("hidden");
+          document.getElementById("resultScreen").classList.remove("hidden");
+          document.getElementById("resultMessage").textContent = `Your score is ${data.score}`;
+        })
+        .catch(err => {
+          console.error("Error:", err);
+          alert("Something went wrong.");
+          location.reload();
+        });
+    }
+
+    function startTimer() {
+      const timerDisplay = document.getElementById("timer");
+      timerInterval = setInterval(() => {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerDisplay.textContent = `Time Left: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        timeLeft--;
+
+        if (timeLeft < 0) {
+          clearInterval(timerInterval);
+          alert("Time's up! Submitting quiz...");
+          submitQuiz();
+        }
+      }, 1000);
+    }
+    
+    // Anti-cheating: tab switch or blur
+    document.addEventListener("visibilitychange", () => {
+  if (document.hidden &&
+      !quizSubmitted &&
+      !document.getElementById("quizScreen").classList.contains("hidden")) {
+
+    handleViolation("Tab switch detected.");
+  }
+});
+
+window.addEventListener("blur", () => {
+  if (!quizSubmitted &&
+      !document.getElementById("quizScreen").classList.contains("hidden")) {
+
+    handleViolation("Browser lost focus.");
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (!quizSubmitted &&
+      !document.getElementById("quizScreen").classList.contains("hidden")) {
+
+    e.preventDefault();
+    handleViolation("Keyboard use detected.");
+  }
+});
+function handleViolation(message) {
+  violationCount++;
+
+  if (violationCount === 1) {
+    alert(message + " This is your warning. Next violation will end the quiz.");
+    openFullscreen();
+    return;
+  }
+
+  if (violationCount > 2) {
+    alert(message + " Ending quiz...");
+    submitQuiz();
+  }
+}
+
+  document.getElementById("addAdminForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = document.getElementById("newAdminUsername").value.trim();
+    const password = document.getElementById("newAdminPassword").value;
+    const classes = document.getElementById("adminClasses").value.split(',').map(c => c.trim());
+    const msg = document.getElementById("addAdminMessage");
+    msg.textContent = "";
+
+    try {
+      const res = await fetch("/admin/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, classes })
+      });
+      const data = await res.json();
+      msg.textContent = data.message || "Admin added successfully.";
+    } catch (err) {
+      msg.textContent = "Server error. Please try again.";
+    }
+  });
+</script>
+
+</body>
+</html>
