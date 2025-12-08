@@ -4,18 +4,28 @@ import Question from "../models/Question.js";
 import Contestant from "../models/Contestant.js";
 import Result from "../models/Results.js";
 import Admin from "../models/Admin.js";
+import ClassModel from "../models/Class.js";
 
 const router = Router();
 
-const VALID_CLASSES = ["BCA-I", "BCA-II", "BCA-III"];
+const DEFAULT_CLASSES = ["BCA-I", "BCA-II", "BCA-III"];
 const ADMIN_USERNAME = "admin";
+
+async function getValidClasses() {
+  const classes = await ClassModel.find({}).lean();
+  if (!classes || classes.length === 0) {
+    await ClassModel.insertMany(DEFAULT_CLASSES.map((name) => ({ name })), { ordered: false });
+    return DEFAULT_CLASSES;
+  }
+  return classes.map((c) => c.name);
+}
 
 function isSuperAdmin(req) {
   return req.session && req.session.adminRole === "superadmin";
 }
 
 function getAdminClasses(req) {
-  if (isSuperAdmin(req)) return VALID_CLASSES;
+  if (isSuperAdmin(req)) return null; // all classes allowed
   return Array.isArray(req.session?.adminClasses) ? req.session.adminClasses : [];
 }
 
@@ -31,6 +41,7 @@ router.post("/contestant", async (req, res) => {
   try {
     if (!ensureAdminSession(req, res)) return;
     const { students } = req.body;
+    const validClasses = await getValidClasses();
 
     if (!students || !Array.isArray(students) || students.length === 0) {
       return res.status(400).json({ status: "error", message: "No student data provided" });
@@ -44,14 +55,14 @@ router.post("/contestant", async (req, res) => {
           message: "Each student must have name, usn, and className" 
         });
       }
-      if (!VALID_CLASSES.includes(student.className.trim())) {
+      if (!validClasses.includes(student.className.trim())) {
         return res.status(400).json({ 
           status: "error", 
-          message: `Invalid className. Must be one of: ${VALID_CLASSES.join(", ")}` 
+          message: `Invalid className. Must be one of: ${validClasses.join(", ")}` 
         });
       }
       const allowed = getAdminClasses(req);
-      if (!allowed.includes(student.className.trim())) {
+      if (allowed && !allowed.includes(student.className.trim())) {
         return res.status(403).json({
           status: "error",
           message: "You are not permitted to add contestants for this class"
@@ -95,10 +106,72 @@ router.post("/contestant", async (req, res) => {
     });
   }
 });
+
+// Update contestant (only within admin's classes)
+router.put("/contestant/:id", async (req, res) => {
+  try {
+    if (!ensureAdminSession(req, res)) return;
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ status: "error", message: "Invalid contestant id" });
+    }
+    const contestant = await Contestant.findById(id);
+    if (!contestant) return res.status(404).json({ status: "error", message: "Contestant not found" });
+
+    const allowed = getAdminClasses(req);
+    if (allowed && !allowed.includes(contestant.className)) {
+      return res.status(403).json({ status: "error", message: "Not permitted for this class" });
+    }
+
+    const { name, usn, className } = req.body;
+    const validClasses = await getValidClasses();
+    if (className && !validClasses.includes(className)) {
+      return res.status(400).json({ status: "error", message: "Invalid className" });
+    }
+    if (className && allowed && !allowed.includes(className)) {
+      return res.status(403).json({ status: "error", message: "Not permitted to move to that class" });
+    }
+
+    if (name) contestant.name = name.trim();
+    if (usn) contestant.usn = usn.trim().toUpperCase();
+    if (className) contestant.className = className;
+
+    await contestant.save();
+    res.json({ status: "success", message: "Contestant updated", contestant });
+  } catch (err) {
+    console.error("Error updating contestant:", err);
+    res.status(500).json({ status: "error", message: "Server error" });
+  }
+});
+
+// Delete contestant
+router.delete("/contestant/:id", async (req, res) => {
+  try {
+    if (!ensureAdminSession(req, res)) return;
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ status: "error", message: "Invalid contestant id" });
+    }
+    const contestant = await Contestant.findById(id);
+    if (!contestant) return res.status(404).json({ status: "error", message: "Contestant not found" });
+
+    const allowed = getAdminClasses(req);
+    if (allowed && !allowed.includes(contestant.className)) {
+      return res.status(403).json({ status: "error", message: "Not permitted for this class" });
+    }
+
+    await Contestant.deleteOne({ _id: id });
+    res.json({ status: "success", message: "Contestant deleted" });
+  } catch (err) {
+    console.error("Error deleting contestant:", err);
+    res.status(500).json({ status: "error", message: "Server error" });
+  }
+});
 router.post("/question", async (req, res) => {
   try {
     if (!ensureAdminSession(req, res)) return;
     const { className, questionText, options, correctAnswer } = req.body;
+    const validClasses = await getValidClasses();
 
     // Validation 1: Required fields
     if (!className || !questionText || !Array.isArray(options) || options.length !== 4 || !correctAnswer) {
@@ -109,16 +182,15 @@ router.post("/question", async (req, res) => {
     }
 
     // Validation 2: className allowed?
-    const validClasses = ["BCA-I", "BCA-II", "BCA-III"];
     if (!validClasses.includes(className)) {
       return res.status(400).json({
         status: "error",
-        message: "Invalid className. Must be BCA-I, BCA-II, or BCA-III."
+        message: "Invalid className."
       });
     }
 
     const allowedClasses = getAdminClasses(req);
-    if (!allowedClasses.includes(className)) {
+    if (allowedClasses && !allowedClasses.includes(className)) {
       return res.status(403).json({
         status: "error",
         message: "You are not permitted to add questions for this class."
@@ -162,6 +234,66 @@ router.post("/question", async (req, res) => {
       message: err.message || "Server error",
       error: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
+  }
+});
+
+// Update a question (only within admin's classes)
+router.put("/question/:id", async (req, res) => {
+  try {
+    if (!ensureAdminSession(req, res)) return;
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ status: "error", message: "Invalid question id" });
+    }
+    const question = await Question.findById(id);
+    if (!question) return res.status(404).json({ status: "error", message: "Question not found" });
+
+    const allowed = getAdminClasses(req);
+    if (allowed && !allowed.includes(question.className)) {
+      return res.status(403).json({ status: "error", message: "Not permitted for this class" });
+    }
+
+    const { questionText, options, correctAnswer } = req.body;
+    if (!questionText || !Array.isArray(options) || options.length !== 4 || !correctAnswer) {
+      return res.status(400).json({ status: "error", message: "Provide questionText, 4 options, and correctAnswer." });
+    }
+    if (!options.includes(correctAnswer)) {
+      return res.status(400).json({ status: "error", message: "Correct answer must match one of the options." });
+    }
+
+    question.questionText = questionText.trim();
+    question.options = options;
+    question.correctAnswer = correctAnswer;
+    await question.save();
+
+    res.json({ status: "success", message: "Question updated", question });
+  } catch (err) {
+    console.error("Error updating question:", err);
+    res.status(500).json({ status: "error", message: "Server error" });
+  }
+});
+
+// Delete question
+router.delete("/question/:id", async (req, res) => {
+  try {
+    if (!ensureAdminSession(req, res)) return;
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ status: "error", message: "Invalid question id" });
+    }
+    const question = await Question.findById(id);
+    if (!question) return res.status(404).json({ status: "error", message: "Question not found" });
+
+    const allowed = getAdminClasses(req);
+    if (allowed && !allowed.includes(question.className)) {
+      return res.status(403).json({ status: "error", message: "Not permitted for this class" });
+    }
+
+    await Question.deleteOne({ _id: id });
+    res.json({ status: "success", message: "Question deleted" });
+  } catch (err) {
+    console.error("Error deleting question:", err);
+    res.status(500).json({ status: "error", message: "Server error" });
   }
 });
 
@@ -314,13 +446,14 @@ router.get("/random", async (req, res) => {
 export default router;
 
 async function ensureAdminStructure() {
+  const validClasses = await getValidClasses();
   await Admin.updateOne(
     { username: ADMIN_USERNAME },
     {
       $setOnInsert: {
         username: ADMIN_USERNAME,
-        managedClasses: VALID_CLASSES,
-        classes: VALID_CLASSES.map(className => ({
+        managedClasses: validClasses,
+        classes: validClasses.map(className => ({
           className,
           contestants: [],
           questions: [],
@@ -333,7 +466,8 @@ async function ensureAdminStructure() {
 }
 
 async function addReferencesToAdmin(className, field, ids) {
-  if (!VALID_CLASSES.includes(className) || !ids || ids.length === 0) return;
+  const validClasses = await getValidClasses();
+  if (!validClasses.includes(className) || !ids || ids.length === 0) return;
 
   await ensureAdminStructure();
 

@@ -10,6 +10,7 @@ import Admin from "./models/Admin.js";
 import Contestant from "./models/Contestant.js";
 import Question from "./models/Question.js";
 import Result from "./models/Results.js";
+import ClassModel from "./models/Class.js";
 import quizRouter from "./routes/quiz.js";
 
 config();
@@ -28,7 +29,17 @@ const ADMIN_USERNAME = "admin";
 const SUPERADMIN_USERNAME = process.env.SUPERADMIN_USERNAME || "superadmin";
 const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD || "superadmin123";
 
-const VALID_CLASSES = ["BCA-I", "BCA-II", "BCA-III"];
+const DEFAULT_CLASSES = ["BCA-I", "BCA-II", "BCA-III"];
+
+async function getValidClasses() {
+  const classes = await ClassModel.find({}).lean();
+  if (!classes || classes.length === 0) {
+    // seed defaults
+    await ClassModel.insertMany(DEFAULT_CLASSES.map((name) => ({ name })), { ordered: false });
+    return DEFAULT_CLASSES;
+  }
+  return classes.map((c) => c.name);
+}
 
 const app = express();
 app.use(cors({
@@ -195,12 +206,13 @@ app.get("/admin/login", (req, res) => {
 app.post("/admin/login", async (req, res) => {
   try {
     const { username, password } = req.body;
-    
+
+    const validClasses = await getValidClasses();
     if (username === SUPERADMIN_USERNAME && password === SUPERADMIN_PASSWORD) {
       req.session.adminId = "superadmin";
       req.session.adminUsername = SUPERADMIN_USERNAME;
       req.session.adminRole = "superadmin";
-      req.session.adminClasses = VALID_CLASSES;
+      req.session.adminClasses = validClasses;
       return res.json({ status: "success" });
     }
     
@@ -242,7 +254,7 @@ app.get("/admin/role", requireAdmin, (req, res) => {
 app.get("/admin/data", requireAdmin, async (req, res) => {
   try {
     const allowedClasses = req.session.adminRole === "superadmin"
-      ? VALID_CLASSES
+      ? await getValidClasses()
       : (req.session.adminClasses || []);
 
     const match = allowedClasses.length ? { className: { $in: allowedClasses } } : {};
@@ -251,7 +263,7 @@ app.get("/admin/data", requireAdmin, async (req, res) => {
     const totalQuestions = await Question.countDocuments(match);
     const totalResults = await Result.countDocuments(match);
     const totalClasses = req.session.adminRole === "superadmin"
-      ? VALID_CLASSES.length
+      ? allowedClasses.length
       : allowedClasses.length;
     
     res.json({
@@ -347,6 +359,7 @@ function generateAdminPage(content, activeTab = 'overview') {
       <h1>Admin Panel</h1>
       <div>
         <span id="adminUsername"></span>
+        <a href="/admin/classes" class="superadmin-only" id="addClassBtn" style="display: none; margin-right: 10px; padding: 8px 16px; background: #6f42c1; color: white; text-decoration: none; border-radius: 4px;">Manage Classes</a>
         <a href="/admin/add" class="add-admin-btn superadmin-only" id="addAdminBtn" style="display: none; margin-right: 10px; padding: 8px 16px; background: #17a2b8; color: white; text-decoration: none; border-radius: 4px;">Add Admin</a>
         <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
       </div>
@@ -357,6 +370,7 @@ function generateAdminPage(content, activeTab = 'overview') {
       <a href="/admin/contestants" class="nav-link ${activeTab === 'contestants' ? 'active' : ''}">Contestants</a>
       <a href="/admin/questions" class="nav-link ${activeTab === 'questions' ? 'active' : ''}">Questions</a>
       <a href="/admin/results" class="nav-link ${activeTab === 'results' ? 'active' : ''}">Results</a>
+      <a href="/admin/classes" class="nav-link superadmin-only ${activeTab === 'classes' ? 'active' : ''}" style="display: none;">Classes</a>
     </div>
 
     ${content}
@@ -366,6 +380,7 @@ function generateAdminPage(content, activeTab = 'overview') {
     // Load admin data on page load
     window.addEventListener('load', async () => {
       await checkUserRole();
+      await loadClasses();
       applyClassRestrictions();
       if (window.loadPageData) {
         await loadPageData();
@@ -380,10 +395,12 @@ function generateAdminPage(content, activeTab = 'overview') {
         const data = await res.json();
         
         document.getElementById('adminUsername').textContent = 'Logged in as: ' + data.username;
+        window.isSuperadmin = data.role === 'superadmin';
         window.allowedClasses = Array.isArray(data.allowedClasses) ? data.allowedClasses : [];
         
-        if (data.role === 'superadmin') {
+        if (window.isSuperadmin) {
           document.getElementById('addAdminBtn').style.display = 'inline-block';
+          document.getElementById('addClassBtn').style.display = 'inline-block';
           document.querySelectorAll('.superadmin-only').forEach(el => {
             el.classList.add('show');
           });
@@ -393,8 +410,45 @@ function generateAdminPage(content, activeTab = 'overview') {
       }
     }
 
+    // Load classes for dropdowns/checkboxes (returns only allowed classes for admins)
+    async function loadClasses() {
+      try {
+        const res = await fetch('/admin/classes/data');
+        const data = await res.json();
+        if (!res.ok || data.status !== 'success') {
+          console.error('Failed to load classes', data);
+          return;
+        }
+        const classes = data.classes || [];
+        window.loadedClasses = classes;
+        renderClassOptions(classes);
+        renderClassCheckboxes(classes);
+      } catch (err) {
+        console.error('Error loading classes:', err);
+      }
+    }
+
+    function renderClassOptions(classList) {
+      const selectIds = ['contestantClass', 'questionClass'];
+      selectIds.forEach(id => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        sel.innerHTML = '<option value=\"\">Select a class</option>' + classList.map(c => \`<option value=\"\${c}\">\${c}</option>\`).join('');
+      });
+    }
+
+    function renderClassCheckboxes(classList) {
+      const box = document.getElementById('classCheckboxes');
+      if (!box) return;
+      box.innerHTML = classList.map(c => \`
+        <label style="display:flex; align-items:center; gap:6px; white-space: nowrap;">
+          <input type="checkbox" class="admin-class-checkbox" value="\${c}" /> \${c}
+        </label>\`).join('');
+    }
+
     // Restrict class dropdowns based on allowed classes
     function applyClassRestrictions() {
+      if (window.isSuperadmin) return; // no restriction for superadmin
       const allowed = window.allowedClasses || [];
       ['contestantClass', 'questionClass'].forEach(id => {
         const select = document.getElementById(id);
@@ -513,9 +567,6 @@ const contestantsContent = `
       <label for="contestantClass">Class</label>
       <select id="contestantClass" required>
         <option value="">Select a class</option>
-        <option value="BCA-I">BCA-I</option>
-        <option value="BCA-II">BCA-II</option>
-        <option value="BCA-III">BCA-III</option>
       </select>
     </div>
     <button type="submit">Add Contestant</button>
@@ -597,9 +648,6 @@ const questionsContent = `
       <label for="questionClass">Class</label>
       <select id="questionClass" required>
         <option value="">Select a class</option>
-        <option value="BCA-I">BCA-I</option>
-        <option value="BCA-II">BCA-II</option>
-        <option value="BCA-III">BCA-III</option>
       </select>
     </div>
     <div class="form-group">
@@ -793,6 +841,140 @@ const resultsContent = `
   </script>
 `;
 
+// Classes management page (superadmin only)
+const classesContent = `
+  <h2>Classes</h2>
+  <div id="classesMessage" class="message"></div>
+  <form id="addClassForm" style="margin-bottom: 20px;">
+    <div class="form-group">
+      <label for="newClassName">Class Name</label>
+      <input type="text" id="newClassName" placeholder="e.g., BCA-IV" required />
+    </div>
+    <button type="submit">Add Class</button>
+  </form>
+  <div id="classesListContainer">
+    <table style="width:100%; border-collapse: collapse;">
+      <thead>
+        <tr style="text-align:left;">
+          <th style="padding:8px; border-bottom:1px solid #ddd;">Class Name</th>
+          <th style="padding:8px; border-bottom:1px solid #ddd;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="classesTableBody">
+        <tr><td colspan="2" style="padding: 12px;">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    async function loadPageData() {
+      await refreshClassesTable();
+      const form = document.getElementById('addClassForm');
+      if (form) form.addEventListener('submit', addClassHandler);
+    }
+
+    async function refreshClassesTable() {
+      const body = document.getElementById('classesTableBody');
+      const msg = document.getElementById('classesMessage');
+      msg.textContent = '';
+      body.innerHTML = '<tr><td colspan="2" style="padding: 12px;">Loading...</td></tr>';
+      try {
+        const res = await fetch('/admin/classes/data');
+        const data = await res.json();
+        if (!res.ok || data.status !== 'success') {
+          msg.className = 'message error';
+          msg.textContent = data.message || 'Failed to load classes';
+          body.innerHTML = '<tr><td colspan="2" style="padding: 12px;">No data</td></tr>';
+          return;
+        }
+        const classes = data.classes || [];
+        if (classes.length === 0) {
+          body.innerHTML = '<tr><td colspan="2" style="padding: 12px;">No classes</td></tr>';
+          return;
+        }
+        body.innerHTML = classes.map(c => \`
+          <tr>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">\${c}</td>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+              <button data-class="\${c}" class="delete-class-btn" style="background:#dc3545; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">Delete</button>
+            </td>
+          </tr>\`).join('');
+
+        document.querySelectorAll('.delete-class-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const cls = e.target.getAttribute('data-class');
+            if (!cls) return;
+            if (!confirm('Delete class ' + cls + '? This does not remove existing data but will hide it from admins.')) return;
+            await deleteClass(cls);
+          });
+        });
+      } catch (err) {
+        msg.className = 'message error';
+        msg.textContent = 'Server error loading classes';
+        body.innerHTML = '<tr><td colspan="2" style="padding: 12px;">Error</td></tr>';
+      }
+    }
+
+    async function addClassHandler(e) {
+      e.preventDefault();
+      const name = document.getElementById('newClassName').value.trim();
+      const msg = document.getElementById('classesMessage');
+      msg.textContent = '';
+      if (!name) {
+        msg.className = 'message error';
+        msg.textContent = 'Enter class name';
+        return;
+      }
+      try {
+        const res = await fetch('/admin/classes/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          msg.className = 'message success';
+          msg.textContent = 'Class added';
+          document.getElementById('newClassName').value = '';
+          await loadClasses();
+          await refreshClassesTable();
+        } else {
+          msg.className = 'message error';
+          msg.textContent = data.message || 'Failed to add class';
+        }
+      } catch (err) {
+        msg.className = 'message error';
+        msg.textContent = 'Server error';
+      }
+    }
+
+    async function deleteClass(name) {
+      const msg = document.getElementById('classesMessage');
+      msg.textContent = '';
+      try {
+        const res = await fetch('/admin/classes/data/' + encodeURIComponent(name), {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          msg.className = 'message success';
+          msg.textContent = 'Class deleted';
+          await loadClasses();
+          await refreshClassesTable();
+        } else {
+          msg.className = 'message error';
+          msg.textContent = data.message || 'Failed to delete class';
+        }
+      } catch (err) {
+        msg.className = 'message error';
+        msg.textContent = 'Server error';
+      }
+    }
+  </script>
+`;
+
 // Add Admin page content
 const addAdminContent = `
   <div style="margin-bottom: 20px;">
@@ -810,17 +992,7 @@ const addAdminContent = `
     </div>
     <div class="form-group">
       <label>Classes (select one or more)</label>
-      <div style="display: flex; gap: 16px; flex-wrap: nowrap; overflow-x: auto; padding: 4px 0;">
-        <label style="display:flex; align-items:center; gap:6px; white-space: nowrap;">
-          <input type="checkbox" class="admin-class-checkbox" value="BCA-I" /> BCA-I
-        </label>
-        <label style="display:flex; align-items:center; gap:6px; white-space: nowrap;">
-          <input type="checkbox" class="admin-class-checkbox" value="BCA-II" /> BCA-II
-        </label>
-        <label style="display:flex; align-items:center; gap:6px; white-space: nowrap;">
-          <input type="checkbox" class="admin-class-checkbox" value="BCA-III" /> BCA-III
-        </label>
-      </div>
+      <div id="classCheckboxes" style="display: flex; gap: 16px; flex-wrap: nowrap; overflow-x: auto; padding: 4px 0;"></div>
     </div>
     <button type="submit">Add Admin</button>
     <div id="addAdminMessage" class="message"></div>
@@ -908,6 +1080,13 @@ app.get("/admin/results", requireAdmin, (req, res) => {
   res.send(generateAdminPage(resultsContent, 'results'));
 });
 
+app.get("/admin/classes", requireAdmin, (req, res) => {
+  if (req.session.adminRole !== "superadmin") {
+    return res.redirect("/admin/overview");
+  }
+  res.send(generateAdminPage(classesContent, 'classes'));
+});
+
 app.get("/admin/add", requireAdmin, (req, res) => {
   if (req.session.adminRole !== "superadmin") {
     return res.redirect("/admin/overview");
@@ -933,6 +1112,65 @@ app.get("/admin/results/data", requireAdmin, async (req, res) => {
   } catch (err) {
     console.error("Error fetching results list:", err);
     res.status(500).json({ status: "error", message: "Server error fetching results" });
+  }
+});
+
+// Classes APIs
+app.get("/admin/classes/data", requireAdmin, async (req, res) => {
+  try {
+    const allClasses = await getValidClasses();
+    const allowed = req.session.adminRole === "superadmin"
+      ? allClasses
+      : (req.session.adminClasses || []);
+    const responseClasses = req.session.adminRole === "superadmin" ? allClasses : allowed;
+    res.json({ status: "success", classes: responseClasses });
+  } catch (err) {
+    console.error("Error fetching classes:", err);
+    res.status(500).json({ status: "error", message: "Server error fetching classes" });
+  }
+});
+
+app.post("/admin/classes/data", requireAdmin, async (req, res) => {
+  try {
+    if (req.session.adminRole !== "superadmin") {
+      return res.status(403).json({ status: "error", message: "Only superadmin can add classes" });
+    }
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ status: "error", message: "Class name is required" });
+    }
+    const className = name.trim();
+    await ClassModel.updateOne({ name: className }, { name: className }, { upsert: true });
+    res.json({ status: "success", message: "Class added" });
+  } catch (err) {
+    console.error("Error adding class:", err);
+    res.status(500).json({ status: "error", message: "Server error adding class" });
+  }
+});
+
+app.delete("/admin/classes/data/:name", requireAdmin, async (req, res) => {
+  try {
+    if (req.session.adminRole !== "superadmin") {
+      return res.status(403).json({ status: "error", message: "Only superadmin can delete classes" });
+    }
+    const name = decodeURIComponent(req.params.name || "").trim();
+    if (!name) {
+      return res.status(400).json({ status: "error", message: "Class name required" });
+    }
+    await ClassModel.deleteOne({ name });
+    await Admin.updateMany(
+      {},
+      {
+        $pull: {
+          managedClasses: name,
+          classes: { className: name }
+        }
+      }
+    );
+    res.json({ status: "success", message: "Class deleted" });
+  } catch (err) {
+    console.error("Error deleting class:", err);
+    res.status(500).json({ status: "error", message: "Server error deleting class" });
   }
 });
 
