@@ -1,5 +1,37 @@
 import mongoose from "mongoose";
 
+const classRefSchema = new mongoose.Schema(
+  {
+    className: {
+      type: String,
+      enum: ["BCA-I", "BCA-II", "BCA-III"],
+      required: true,
+    },
+    contestants: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Contestant",
+        default: [],
+      },
+    ],
+    questions: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Question",
+        default: [],
+      },
+    ],
+    results: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Result",
+        default: [],
+      },
+    ],
+  },
+  { _id: false }
+);
+
 const adminSchema = new mongoose.Schema(
   {
     username: {
@@ -17,11 +49,13 @@ const adminSchema = new mongoose.Schema(
       enum: ["admin", "superadmin"],
       default: "admin",
     },
-    classes: [
+    managedClasses: [
       {
         type: String,
+        enum: ["BCA-I", "BCA-II", "BCA-III"],
       },
     ],
+    classes: [classRefSchema],
   },
   {
     collection: "admins",

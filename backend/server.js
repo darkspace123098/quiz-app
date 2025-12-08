@@ -23,10 +23,12 @@ const allowedOrigins = [
 // Resolve __dirname in ES module context
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "changeme";
+// Default admin username is fixed; only superadmin credentials come from env
+const ADMIN_USERNAME = "admin";
 const SUPERADMIN_USERNAME = process.env.SUPERADMIN_USERNAME || "superadmin";
 const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD || "superadmin123";
+
+const VALID_CLASSES = ["BCA-I", "BCA-II", "BCA-III"];
 
 const app = express();
 app.use(cors({
@@ -198,6 +200,7 @@ app.post("/admin/login", async (req, res) => {
       req.session.adminId = "superadmin";
       req.session.adminUsername = SUPERADMIN_USERNAME;
       req.session.adminRole = "superadmin";
+      req.session.adminClasses = VALID_CLASSES;
       return res.json({ status: "success" });
     }
     
@@ -206,6 +209,9 @@ app.post("/admin/login", async (req, res) => {
       req.session.adminId = admin._id.toString();
       req.session.adminUsername = admin.username;
       req.session.adminRole = admin.role || "admin";
+      req.session.adminClasses = admin.managedClasses?.length
+        ? admin.managedClasses
+        : (Array.isArray(admin.classes) ? admin.classes.map(c => c.className) : []);
       return res.json({ status: "success" });
     }
     
@@ -271,11 +277,20 @@ app.post("/admin/add", requireAdmin, async (req, res) => {
       return res.status(400).json({ status: "error", message: "Username already exists" });
     }
     
-    const newAdmin = await Admin.create({
+    // Build classes structure matching schema
+    const classDocs = classes.map((cls) => ({
+      className: cls,
+      contestants: [],
+      questions: [],
+      results: []
+    }));
+    
+    await Admin.create({
       username,
       password,
       role: "admin",
-      classes
+      managedClasses: classes,
+      classes: classDocs
     });
     
     res.json({ status: "success", message: "Admin added successfully" });
@@ -295,7 +310,7 @@ function generateAdminPage(content, activeTab = 'overview') {
     body { font-family: Arial, sans-serif; margin: 20px; }
     .container { max-width: 1200px; margin: 0 auto; }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-    .nav-links { display: flex; gap: 10px; margin-bottom: 20px; }
+    .nav-links { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
     .nav-link { padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; display: inline-block; }
     .nav-link:hover { background: #0056b3; }
     .nav-link.active { background: #0056b3; }
@@ -332,6 +347,7 @@ function generateAdminPage(content, activeTab = 'overview') {
       <a href="/admin/overview" class="nav-link ${activeTab === 'overview' ? 'active' : ''}">Overview</a>
       <a href="/admin/contestants" class="nav-link ${activeTab === 'contestants' ? 'active' : ''}">Contestants</a>
       <a href="/admin/questions" class="nav-link ${activeTab === 'questions' ? 'active' : ''}">Questions</a>
+      <a href="/admin/results" class="nav-link ${activeTab === 'results' ? 'active' : ''}">Results</a>
     </div>
 
     ${content}
@@ -502,6 +518,7 @@ const contestantsContent = `
         const res = await fetch('/api/quiz/contestant', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             students: [{
               name,
@@ -510,7 +527,16 @@ const contestantsContent = `
             }]
           })
         });
-        const data = await res.json();
+        
+        let data;
+        try {
+          data = await res.json();
+        } catch (parseErr) {
+          msg.className = 'message error';
+          msg.textContent = 'Server returned invalid response. Status: ' + res.status;
+          console.error('Response parse error:', parseErr);
+          return;
+        }
         
         if (data.status === 'success') {
           msg.className = 'message success';
@@ -524,7 +550,8 @@ const contestantsContent = `
         }
       } catch (err) {
         msg.className = 'message error';
-        msg.textContent = 'Server error. Please try again.';
+        msg.textContent = 'Network error: ' + err.message;
+        console.error('Request error:', err);
       }
     }
   </script>
@@ -624,6 +651,7 @@ const questionsContent = `
         const res = await fetch('/api/quiz/question', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             className,
             questionText,
@@ -666,6 +694,77 @@ const questionsContent = `
   </script>
 `;
 
+// Results page content
+const resultsContent = `
+  <h2>Results</h2>
+  <div id="resultsMessage" class="message"></div>
+  <div id="resultsContainer" style="overflow-x: auto;">
+    <table id="resultsTable" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="text-align: left;">
+          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Name</th>
+          <th style="padding: 8px; border-bottom: 1px solid #ddd;">USN</th>
+          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Class</th>
+          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Score</th>
+          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Submitted At</th>
+        </tr>
+      </thead>
+      <tbody id="resultsBody">
+        <tr><td colspan="5" style="padding: 12px;">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    async function loadPageData() {
+      const msg = document.getElementById('resultsMessage');
+      const body = document.getElementById('resultsBody');
+      msg.textContent = '';
+      body.innerHTML = '<tr><td colspan="5" style="padding: 12px;">Loading...</td></tr>';
+
+      try {
+        const res = await fetch('/admin/results/data', { credentials: 'include' });
+        let data;
+        try {
+          data = await res.json();
+        } catch (err) {
+          msg.className = 'message error';
+          msg.textContent = 'Invalid server response.';
+          return;
+        }
+
+        if (!res.ok || data.status !== 'success') {
+          msg.className = 'message error';
+          msg.textContent = data.message || 'Failed to load results';
+          body.innerHTML = '<tr><td colspan="5" style="padding: 12px;">No data</td></tr>';
+          return;
+        }
+
+        if (!data.results || data.results.length === 0) {
+          body.innerHTML = '<tr><td colspan="5" style="padding: 12px;">No results yet</td></tr>';
+          return;
+        }
+
+        body.innerHTML = data.results.map(r => {
+          const date = new Date(r.submittedAt || r.createdAt || r._id).toLocaleString();
+          return \`<tr>
+            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${r.name || '-'}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${r.usn || '-'}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${r.className || '-'}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${r.score ?? '-'}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${date}</td>
+          </tr>\`;
+        }).join('');
+      } catch (err) {
+        console.error('Failed to load results:', err);
+        msg.className = 'message error';
+        msg.textContent = 'Server error while loading results.';
+        body.innerHTML = '<tr><td colspan="5" style="padding: 12px;">Error loading results</td></tr>';
+      }
+    }
+  </script>
+`;
+
 // Add Admin page content
 const addAdminContent = `
   <div style="margin-bottom: 20px;">
@@ -682,8 +781,18 @@ const addAdminContent = `
       <input type="password" id="newAdminPassword" required />
     </div>
     <div class="form-group">
-      <label for="adminClasses">Classes (comma separated)</label>
-      <input type="text" id="adminClasses" required />
+      <label>Classes (select one or more)</label>
+      <div style="display: flex; gap: 16px; flex-wrap: nowrap; overflow-x: auto; padding: 4px 0;">
+        <label style="display:flex; align-items:center; gap:6px; white-space: nowrap;">
+          <input type="checkbox" class="admin-class-checkbox" value="BCA-I" /> BCA-I
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; white-space: nowrap;">
+          <input type="checkbox" class="admin-class-checkbox" value="BCA-II" /> BCA-II
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; white-space: nowrap;">
+          <input type="checkbox" class="admin-class-checkbox" value="BCA-III" /> BCA-III
+        </label>
+      </div>
     </div>
     <button type="submit">Add Admin</button>
     <div id="addAdminMessage" class="message"></div>
@@ -701,31 +810,50 @@ const addAdminContent = `
       e.preventDefault();
       const username = document.getElementById('newAdminUsername').value.trim();
       const password = document.getElementById('newAdminPassword').value;
-      const classes = document.getElementById('adminClasses').value.split(',').map(c => c.trim());
+      const classes = Array.from(document.querySelectorAll('.admin-class-checkbox'))
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
       const msg = document.getElementById('addAdminMessage');
       msg.textContent = '';
+
+      if (classes.length === 0) {
+        msg.className = 'message error';
+        msg.textContent = 'Select at least one class';
+        return;
+      }
 
       try {
         const res = await fetch('/admin/add', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ username, password, classes })
         });
-        const data = await res.json();
+        
+        let data;
+        try {
+          data = await res.json();
+        } catch (parseErr) {
+          msg.className = 'message error';
+          msg.textContent = 'Server returned invalid response. Status: ' + res.status;
+          console.error('Response parse error:', parseErr);
+          return;
+        }
         
         if (data.status === 'success') {
           msg.className = 'message success';
           msg.textContent = 'Admin added successfully!';
           document.getElementById('newAdminUsername').value = '';
           document.getElementById('newAdminPassword').value = '';
-          document.getElementById('adminClasses').value = '';
+          document.querySelectorAll('.admin-class-checkbox').forEach(cb => cb.checked = false);
         } else {
           msg.className = 'message error';
           msg.textContent = data.message || 'Failed to add admin';
         }
       } catch (err) {
         msg.className = 'message error';
-        msg.textContent = 'Server error. Please try again.';
+        msg.textContent = 'Network error: ' + err.message;
+        console.error('Request error:', err);
       }
     }
   </script>
@@ -748,11 +876,30 @@ app.get("/admin/questions", requireAdmin, (req, res) => {
   res.send(generateAdminPage(questionsContent, 'questions'));
 });
 
+app.get("/admin/results", requireAdmin, (req, res) => {
+  res.send(generateAdminPage(resultsContent, 'results'));
+});
+
 app.get("/admin/add", requireAdmin, (req, res) => {
   if (req.session.adminRole !== "superadmin") {
     return res.redirect("/admin/overview");
   }
   res.send(generateAdminPage(addAdminContent, 'add'));
+});
+
+// Results data for admin table
+app.get("/admin/results/data", requireAdmin, async (req, res) => {
+  try {
+    const results = await Result.find({})
+      .sort({ submittedAt: -1, _id: -1 })
+      .limit(200)
+      .lean();
+
+    res.json({ status: "success", results });
+  } catch (err) {
+    console.error("Error fetching results list:", err);
+    res.status(500).json({ status: "error", message: "Server error fetching results" });
+  }
 });
 
 // Serve frontend static files (after admin routes to avoid conflicts)

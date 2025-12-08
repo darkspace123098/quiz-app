@@ -8,14 +8,55 @@ import Admin from "../models/Admin.js";
 const router = Router();
 
 const VALID_CLASSES = ["BCA-I", "BCA-II", "BCA-III"];
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
+const ADMIN_USERNAME = "admin";
+
+function isSuperAdmin(req) {
+  return req.session && req.session.adminRole === "superadmin";
+}
+
+function getAdminClasses(req) {
+  if (isSuperAdmin(req)) return VALID_CLASSES;
+  return Array.isArray(req.session?.adminClasses) ? req.session.adminClasses : [];
+}
+
+function ensureAdminSession(req, res) {
+  if (!req.session || !req.session.adminId) {
+    res.status(401).json({ status: "error", message: "Unauthorized" });
+    return false;
+  }
+  return true;
+}
 
 router.post("/contestant", async (req, res) => {
   try {
+    if (!ensureAdminSession(req, res)) return;
     const { students } = req.body;
 
     if (!students || !Array.isArray(students) || students.length === 0) {
-      return res.json({ status: "error", message: "No student data provided" });
+      return res.status(400).json({ status: "error", message: "No student data provided" });
+    }
+
+    // Validate each student
+    for (const student of students) {
+      if (!student.name || !student.usn || !student.className) {
+        return res.status(400).json({ 
+          status: "error", 
+          message: "Each student must have name, usn, and className" 
+        });
+      }
+      if (!VALID_CLASSES.includes(student.className.trim())) {
+        return res.status(400).json({ 
+          status: "error", 
+          message: `Invalid className. Must be one of: ${VALID_CLASSES.join(", ")}` 
+        });
+      }
+      const allowed = getAdminClasses(req);
+      if (!allowed.includes(student.className.trim())) {
+        return res.status(403).json({
+          status: "error",
+          message: "You are not permitted to add contestants for this class"
+        });
+      }
     }
 
     const normalizedStudents = students.map(student => ({
@@ -25,7 +66,7 @@ router.post("/contestant", async (req, res) => {
       name: student.name?.trim()
     }));
 
-    const inserted = await Contestant.insertMany(normalizedStudents);
+    const inserted = await Contestant.insertMany(normalizedStudents, { ordered: false });
 
     const groupedByClass = inserted.reduce((acc, doc) => {
       acc[doc.className] = acc[doc.className] || [];
@@ -42,11 +83,21 @@ router.post("/contestant", async (req, res) => {
     res.json({ status: "success", message: "Contestants added successfully" });
   } catch (err) {
     console.error("Failed to add contestants:", err);
-    res.json({ status: "error", message: "Server error" });
+    if (err.code === 11000) {
+      return res.status(400).json({ 
+        status: "error", 
+        message: "One or more USNs already exist" 
+      });
+    }
+    res.status(500).json({ 
+      status: "error", 
+      message: err.message || "Server error" 
+    });
   }
 });
 router.post("/question", async (req, res) => {
   try {
+    if (!ensureAdminSession(req, res)) return;
     const { className, questionText, options, correctAnswer } = req.body;
 
     // Validation 1: Required fields
@@ -63,6 +114,14 @@ router.post("/question", async (req, res) => {
       return res.status(400).json({
         status: "error",
         message: "Invalid className. Must be BCA-I, BCA-II, or BCA-III."
+      });
+    }
+
+    const allowedClasses = getAdminClasses(req);
+    if (!allowedClasses.includes(className)) {
+      return res.status(403).json({
+        status: "error",
+        message: "You are not permitted to add questions for this class."
       });
     }
 
@@ -110,15 +169,40 @@ router.post("/question", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { name, usn, responses } = req.body;
+    
+    if (!usn) {
+      return res.status(400).json({ status: "error", message: "USN is required" });
+    }
+
+    if (!responses || typeof responses !== 'object' || Object.keys(responses).length === 0) {
+      return res.status(400).json({ status: "error", message: "No responses provided" });
+    }
+
     let score = 0;
 
-    const contestant1 = await Contestant.findOne({ usn: usn.trim() });
+    const contestant1 = await Contestant.findOne({ usn: usn.trim().toUpperCase() });
     if (!contestant1) {
       return res.status(400).json({ status: "error", message: "Contestant not found" });
     }
 
-    const questionIds = Object.keys(responses).map(id => new mongoose.Types.ObjectId(id));
+    // Check if quiz was already attempted
+    if (contestant1.results && contestant1.results.length > 0) {
+      return res.status(403).json({ status: "error", message: "Quiz already attempted" });
+    }
+
+    const questionIds = Object.keys(responses)
+      .filter(id => mongoose.Types.ObjectId.isValid(id))
+      .map(id => new mongoose.Types.ObjectId(id));
+    
+    if (questionIds.length === 0) {
+      return res.status(400).json({ status: "error", message: "Invalid question IDs" });
+    }
+
     const questions = await Question.find({ _id: { $in: questionIds } });
+
+    if (questions.length === 0) {
+      return res.status(400).json({ status: "error", message: "No valid questions found" });
+    }
 
     questions.forEach((question) => {
       const qid = question._id.toString();
@@ -144,7 +228,24 @@ router.post("/", async (req, res) => {
     await contestant1.save();
     await addReferencesToAdmin(contestant1.className, "results", [resultDoc._id]);
 
-    res.json({ status: "success", score });
+    // Get detailed results for response
+    const totalQuestions = questions.length;
+    const correctAnswers = questions.map(q => ({
+      questionId: q._id.toString(),
+      questionText: q.questionText,
+      correctAnswer: q.correctAnswer,
+      userAnswer: responses[q._id.toString()] || "Not answered"
+    }));
+
+    res.json({ 
+      status: "success", 
+      score,
+      totalQuestions,
+      name: contestant1.name,
+      usn: contestant1.usn,
+      className: contestant1.className,
+      correctAnswers
+    });
 
   } catch (err) {
     console.error("Server error:", err);
@@ -157,15 +258,15 @@ function getClassFromUSN(usn) {
   if (usn.includes("TY25")) return "BCA-I";
   return null; // unknown
 }
-  router.get("/random", async (req, res) => {
+router.get("/random", async (req, res) => {
   try {
     const { usn } = req.query;
-console.log("whdwe",usn)
+    
     if (!usn) {
       return res.status(400).json({ error: "USN is required" });
     }
 
-    const contestant = await Contestant.findOne({ usn: usn.trim() });
+    const contestant = await Contestant.findOne({ usn: usn.trim().toUpperCase() });
 
     if (!contestant) {
       return res.status(404).json({ error: "Contestant not found" });
@@ -176,39 +277,31 @@ console.log("whdwe",usn)
       return res.status(403).json({ error: "Quiz already attempted" });
     }
 
-    // Send random questions
-    let skip = 0;
-let limit = 5;
-
-// if (usn >= "01" && usn <= "30") {
-//   skip = 0; // First 15 questions
-// } else if (usn >= "31" && usn <= "64") {
-//   skip = 15; // Next 15 questions
-// } else {
-//   return res.status(400).json({ error: 'Invalid USN range' });
-// }
-
-const className = getClassFromUSN(usn);
-if (!className) {
-      return res.status(400).json({ status: "error", message: "Invalid USN format." });
+    const className = getClassFromUSN(usn);
+    if (!className) {
+      return res.status(400).json({ error: "Invalid USN format. USN must contain TY23, TY24, or TY25" });
     }
-const questions = await Question.aggregate([
-  { $match: { className } },
-  { $sort: { _id: 1 } },
-  { $sample: { size: 5 } },
-  {
-    $project: {
-      questionText: 1,
-      options: 1,
-    }
-  }
-]);
 
-const response = {
-  name: contestant.name,
-  questions: questions
-};
-console.log(skip,questions);
+    const questions = await Question.aggregate([
+      { $match: { className } },
+      { $sample: { size: 5 } },
+      {
+        $project: {
+          _id: 1,
+          questionText: 1,
+          options: 1,
+        }
+      }
+    ]);
+
+    if (questions.length === 0) {
+      return res.status(404).json({ error: "No questions available for this class" });
+    }
+
+    const response = {
+      name: contestant.name,
+      questions: questions
+    };
 
     res.json(response);
 
