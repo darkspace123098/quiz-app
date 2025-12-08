@@ -234,16 +234,25 @@ app.post("/admin/logout", (req, res) => {
 app.get("/admin/role", requireAdmin, (req, res) => {
   res.json({
     username: req.session.adminUsername,
-    role: req.session.adminRole || "admin"
+    role: req.session.adminRole || "admin",
+    allowedClasses: req.session.adminClasses || []
   });
 });
 
 app.get("/admin/data", requireAdmin, async (req, res) => {
   try {
-    const totalClasses = 3; // BCA-I, BCA-II, BCA-III
-    const totalContestants = await Contestant.countDocuments();
-    const totalQuestions = await Question.countDocuments();
-    const totalResults = await Result.countDocuments();
+    const allowedClasses = req.session.adminRole === "superadmin"
+      ? VALID_CLASSES
+      : (req.session.adminClasses || []);
+
+    const match = allowedClasses.length ? { className: { $in: allowedClasses } } : {};
+
+    const totalContestants = await Contestant.countDocuments(match);
+    const totalQuestions = await Question.countDocuments(match);
+    const totalResults = await Result.countDocuments(match);
+    const totalClasses = req.session.adminRole === "superadmin"
+      ? VALID_CLASSES.length
+      : allowedClasses.length;
     
     res.json({
       status: "success",
@@ -357,6 +366,7 @@ function generateAdminPage(content, activeTab = 'overview') {
     // Load admin data on page load
     window.addEventListener('load', async () => {
       await checkUserRole();
+      applyClassRestrictions();
       if (window.loadPageData) {
         await loadPageData();
       }
@@ -370,6 +380,7 @@ function generateAdminPage(content, activeTab = 'overview') {
         const data = await res.json();
         
         document.getElementById('adminUsername').textContent = 'Logged in as: ' + data.username;
+        window.allowedClasses = Array.isArray(data.allowedClasses) ? data.allowedClasses : [];
         
         if (data.role === 'superadmin') {
           document.getElementById('addAdminBtn').style.display = 'inline-block';
@@ -380,6 +391,23 @@ function generateAdminPage(content, activeTab = 'overview') {
       } catch (err) {
         console.error('Failed to check role:', err);
       }
+    }
+
+    // Restrict class dropdowns based on allowed classes
+    function applyClassRestrictions() {
+      const allowed = window.allowedClasses || [];
+      ['contestantClass', 'questionClass'].forEach(id => {
+        const select = document.getElementById(id);
+        if (!select) return;
+        Array.from(select.options).forEach(opt => {
+          if (!opt.value) return;
+          opt.disabled = allowed.length > 0 && !allowed.includes(opt.value);
+        });
+        // If current selection is not allowed, reset
+        if (select.value && select.selectedOptions.length && select.selectedOptions[0].disabled) {
+          select.value = '';
+        }
+      });
     }
 
     // Attach event listeners
@@ -890,7 +918,13 @@ app.get("/admin/add", requireAdmin, (req, res) => {
 // Results data for admin table
 app.get("/admin/results/data", requireAdmin, async (req, res) => {
   try {
-    const results = await Result.find({})
+    const filter = {};
+    if (req.session.adminRole !== "superadmin") {
+      const classes = Array.isArray(req.session.adminClasses) ? req.session.adminClasses : [];
+      filter.className = { $in: classes };
+    }
+
+    const results = await Result.find(filter)
       .sort({ submittedAt: -1, _id: -1 })
       .limit(200)
       .lean();
