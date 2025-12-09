@@ -8,7 +8,10 @@ const resultSchema = new Schema(
     },
     className: {
       type: String,
-      enum: ["BCA-I", "BCA-II", "BCA-III"],
+      required: true
+    },
+    quizCode: {
+      type: String,
       required: true
     },
     name: {

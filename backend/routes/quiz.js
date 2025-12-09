@@ -49,10 +49,10 @@ router.post("/contestant", async (req, res) => {
 
     // Validate each student
     for (const student of students) {
-      if (!student.name || !student.usn || !student.className) {
+      if (!student.name || !student.usn || !student.className || !student.quizCode || !student.quizPassword) {
         return res.status(400).json({ 
           status: "error", 
-          message: "Each student must have name, usn, and className" 
+          message: "Each student must have name, usn, className, quizCode, and quizPassword" 
         });
       }
       if (!validClasses.includes(student.className.trim())) {
@@ -74,7 +74,9 @@ router.post("/contestant", async (req, res) => {
       ...student,
       className: student.className?.trim(),
       usn: student.usn?.trim().toUpperCase(),
-      name: student.name?.trim()
+      name: student.name?.trim(),
+      quizCode: student.quizCode?.trim(),
+      quizPassword: student.quizPassword?.trim()
     }));
 
     const inserted = await Contestant.insertMany(normalizedStudents, { ordered: false });
@@ -123,7 +125,7 @@ router.put("/contestant/:id", async (req, res) => {
       return res.status(403).json({ status: "error", message: "Not permitted for this class" });
     }
 
-    const { name, usn, className } = req.body;
+    const { name, usn, className, quizCode, quizPassword } = req.body;
     const validClasses = await getValidClasses();
     if (className && !validClasses.includes(className)) {
       return res.status(400).json({ status: "error", message: "Invalid className" });
@@ -135,6 +137,8 @@ router.put("/contestant/:id", async (req, res) => {
     if (name) contestant.name = name.trim();
     if (usn) contestant.usn = usn.trim().toUpperCase();
     if (className) contestant.className = className;
+    if (quizCode) contestant.quizCode = quizCode.trim();
+    if (quizPassword !== undefined) contestant.quizPassword = quizPassword.trim();
 
     await contestant.save();
     res.json({ status: "success", message: "Contestant updated", contestant });
@@ -167,17 +171,46 @@ router.delete("/contestant/:id", async (req, res) => {
     res.status(500).json({ status: "error", message: "Server error" });
   }
 });
+
+// Update contestant password/quizCode by USN (convenience)
+router.put("/contestant/password", async (req, res) => {
+  try {
+    if (!ensureAdminSession(req, res)) return;
+    const { usn, quizPassword, quizCode } = req.body;
+    if (!usn) return res.status(400).json({ status: "error", message: "USN is required" });
+
+    const contestant = await Contestant.findOne({ usn: usn.trim().toUpperCase() });
+    if (!contestant) return res.status(404).json({ status: "error", message: "Contestant not found" });
+
+    const allowed = getAdminClasses(req);
+    if (allowed && !allowed.includes(contestant.className)) {
+      return res.status(403).json({ status: "error", message: "Not permitted for this class" });
+    }
+
+    if (quizPassword !== undefined) contestant.quizPassword = quizPassword.trim();
+    if (quizCode) contestant.quizCode = quizCode.trim();
+
+    await contestant.save();
+    res.json({ status: "success", message: "Contestant credentials updated" });
+  } catch (err) {
+    console.error("Error updating contestant password:", err);
+    res.status(500).json({ status: "error", message: "Server error" });
+  }
+});
 router.post("/question", async (req, res) => {
   try {
     if (!ensureAdminSession(req, res)) return;
-    const { className, questionText, options, correctAnswer } = req.body;
+    if (!isSuperAdmin(req)) {
+      return res.status(403).json({ status: "error", message: "Only superadmin can create questions" });
+    }
+    const { className, questionText, options, correctAnswer, quizCode } = req.body;
     const validClasses = await getValidClasses();
 
     // Validation 1: Required fields
-    if (!className || !questionText || !Array.isArray(options) || options.length !== 4 || !correctAnswer) {
+    if (!className || !quizCode || !questionText || !Array.isArray(options) || options.length !== 4 || !correctAnswer) {
       return res.status(400).json({
         status: "error",
-        message: "Provide className, questionText, 4 options, and correctAnswer."
+        message: "Provide className, quizCode, questionText, 4 options, and correctAnswer."
       });
     }
 
@@ -186,14 +219,6 @@ router.post("/question", async (req, res) => {
       return res.status(400).json({
         status: "error",
         message: "Invalid className."
-      });
-    }
-
-    const allowedClasses = getAdminClasses(req);
-    if (allowedClasses && !allowedClasses.includes(className)) {
-      return res.status(403).json({
-        status: "error",
-        message: "You are not permitted to add questions for this class."
       });
     }
 
@@ -208,6 +233,7 @@ router.post("/question", async (req, res) => {
     // Save to MongoDB
     const question = await Question.create({
       className,
+      quizCode: quizCode.trim(),
       questionText,
       options,
       correctAnswer
@@ -237,10 +263,13 @@ router.post("/question", async (req, res) => {
   }
 });
 
-// Update a question (only within admin's classes)
+// Update a question (superadmin only)
 router.put("/question/:id", async (req, res) => {
   try {
     if (!ensureAdminSession(req, res)) return;
+    if (!isSuperAdmin(req)) {
+      return res.status(403).json({ status: "error", message: "Only superadmin can update questions" });
+    }
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ status: "error", message: "Invalid question id" });
@@ -248,12 +277,7 @@ router.put("/question/:id", async (req, res) => {
     const question = await Question.findById(id);
     if (!question) return res.status(404).json({ status: "error", message: "Question not found" });
 
-    const allowed = getAdminClasses(req);
-    if (allowed && !allowed.includes(question.className)) {
-      return res.status(403).json({ status: "error", message: "Not permitted for this class" });
-    }
-
-    const { questionText, options, correctAnswer } = req.body;
+    const { questionText, options, correctAnswer, quizCode } = req.body;
     if (!questionText || !Array.isArray(options) || options.length !== 4 || !correctAnswer) {
       return res.status(400).json({ status: "error", message: "Provide questionText, 4 options, and correctAnswer." });
     }
@@ -264,6 +288,7 @@ router.put("/question/:id", async (req, res) => {
     question.questionText = questionText.trim();
     question.options = options;
     question.correctAnswer = correctAnswer;
+    if (quizCode) question.quizCode = quizCode.trim();
     await question.save();
 
     res.json({ status: "success", message: "Question updated", question });
@@ -273,21 +298,19 @@ router.put("/question/:id", async (req, res) => {
   }
 });
 
-// Delete question
+// Delete question (superadmin only)
 router.delete("/question/:id", async (req, res) => {
   try {
     if (!ensureAdminSession(req, res)) return;
+    if (!isSuperAdmin(req)) {
+      return res.status(403).json({ status: "error", message: "Only superadmin can delete questions" });
+    }
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ status: "error", message: "Invalid question id" });
     }
     const question = await Question.findById(id);
     if (!question) return res.status(404).json({ status: "error", message: "Question not found" });
-
-    const allowed = getAdminClasses(req);
-    if (allowed && !allowed.includes(question.className)) {
-      return res.status(403).json({ status: "error", message: "Not permitted for this class" });
-    }
 
     await Question.deleteOne({ _id: id });
     res.json({ status: "success", message: "Question deleted" });
@@ -351,6 +374,7 @@ router.post("/", async (req, res) => {
     const resultDoc = await Result.create({
       contestant: contestant1._id,
       className: contestant1.className,
+      quizCode: contestant1.quizCode,
       name: contestant1.name,
       usn: contestant1.usn,
       responses,
@@ -392,10 +416,10 @@ function getClassFromUSN(usn) {
 }
 router.get("/random", async (req, res) => {
   try {
-    const { usn } = req.query;
+    const { usn, quizCode, password } = req.query;
     
-    if (!usn) {
-      return res.status(400).json({ error: "USN is required" });
+    if (!usn || !quizCode || !password) {
+      return res.status(400).json({ error: "USN, quizCode, and password are required" });
     }
 
     const contestant = await Contestant.findOne({ usn: usn.trim().toUpperCase() });
@@ -409,13 +433,18 @@ router.get("/random", async (req, res) => {
       return res.status(403).json({ error: "Quiz already attempted" });
     }
 
-    const className = getClassFromUSN(usn);
-    if (!className) {
-      return res.status(400).json({ error: "Invalid USN format. USN must contain TY23, TY24, or TY25" });
+    // Validate quiz code and password
+    if (contestant.quizCode !== quizCode.trim()) {
+      return res.status(403).json({ error: "Invalid quiz code for this contestant" });
+    }
+    if (contestant.quizPassword !== password) {
+      return res.status(403).json({ error: "Invalid password for this contestant" });
     }
 
+    const className = contestant.className;
+
     const questions = await Question.aggregate([
-      { $match: { className } },
+      { $match: { className, quizCode: quizCode.trim() } },
       { $sample: { size: 5 } },
       {
         $project: {
@@ -427,12 +456,17 @@ router.get("/random", async (req, res) => {
     ]);
 
     if (questions.length === 0) {
-      return res.status(404).json({ error: "No questions available for this class" });
+      return res.status(404).json({ error: "No questions available for this quiz code" });
     }
+
+    // Get quiz time for this class
+    const classData = await ClassModel.findOne({ name: className });
+    const quizTime = classData?.quizTime || 300; // Default to 5 minutes if not set
 
     const response = {
       name: contestant.name,
-      questions: questions
+      questions: questions,
+      quizTime: quizTime
     };
 
     res.json(response);

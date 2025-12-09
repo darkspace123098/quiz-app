@@ -5,7 +5,11 @@ const questionSchema = new mongoose.Schema(
     className: {
       type: String,
       required: true,
-      enum: ["BCA-I", "BCA-II", "BCA-III"],   // ensures valid class
+      trim: true
+    },
+    quizCode: {
+      type: String,
+      required: true,
       trim: true
     },
 

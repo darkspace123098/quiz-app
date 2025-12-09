@@ -35,7 +35,16 @@ const contestantSchema = new Schema(
     className: {
       type: String,
       required: true,
-      enum: ["BCA-I", "BCA-II", "BCA-III"],
+      trim: true
+    },
+    quizCode: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    quizPassword: {
+      type: String,
+      required: true,
       trim: true
     },
     createdAt: {
