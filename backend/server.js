@@ -670,6 +670,30 @@ function generateAdminPage(content, activeTab = 'overview') {
       });
     }
 
+    // Delete a single result (shared by overview + results pages)
+    async function deleteResult(id) {
+      const msg = document.getElementById('resultsMessage');
+      if (!msg) return;
+      msg.textContent = '';
+      try {
+        const res = await fetch('/admin/results/' + id, { method: 'DELETE', credentials: 'include' });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          msg.className = 'message success';
+          msg.textContent = 'Result deleted';
+          if (window.loadPageData) {
+            await loadPageData();
+          }
+        } else {
+          msg.className = 'message error';
+          msg.textContent = data.message || 'Failed to delete result';
+        }
+      } catch (err) {
+        msg.className = 'message error';
+        msg.textContent = 'Server error while deleting result';
+      }
+    }
+
     // Attach event listeners
     function attachEventListeners() {
       ${getEventListenersScript(activeTab)}
@@ -728,20 +752,19 @@ const overviewContent = `
   <div class="stat-card">
     <h3>Total Classes</h3>
     <p id="totalClasses">0</p>
-  </div><br>
-
+  </div>
   <div class="stat-card">
     <h3>Total Contestants</h3>
     <p id="totalContestants">0</p>
-  </div><br>
+  </div>
   <div class="stat-card">
     <h3>Total Questions</h3>
     <p id="totalQuestions">0</p>
-  </div><br>
+  </div>
   <div class="stat-card">
     <h3>Total Results</h3>
     <p id="totalResults">0</p>
-  </div><br>
+  </div>
 
   <script>
     async function loadPageData() {
@@ -757,26 +780,6 @@ const overviewContent = `
         }
       } catch (err) {
         console.error('Failed to load admin data:', err);
-      }
-    }
-
-    async function deleteResult(id) {
-      const msg = document.getElementById('resultsMessage');
-      msg.textContent = '';
-      try {
-        const res = await fetch('/admin/results/' + id, { method: 'DELETE', credentials: 'include' });
-        const data = await res.json();
-        if (res.ok && data.status === 'success') {
-          msg.className = 'message success';
-          msg.textContent = 'Result deleted';
-          await loadPageData();
-        } else {
-          msg.className = 'message error';
-          msg.textContent = data.message || 'Failed to delete result';
-        }
-      } catch (err) {
-        msg.className = 'message error';
-        msg.textContent = 'Server error while deleting result';
       }
     }
   </script>
@@ -958,10 +961,10 @@ const questionsContent = `
     </div>
     <div class="form-group">
       <label>Options (4 required)</label>
-      <input type="text" id="option1" placeholder="Option 1" required /><br><br>
-      <input type="text" id="option2" placeholder="Option 2" required /><br><br>
-      <input type="text" id="option3" placeholder="Option 3" required /><br><br>
-      <input type="text" id="option4" placeholder="Option 4" required /><br><br>
+      <input type="text" id="option1" placeholder="Option 1" required />
+      <input type="text" id="option2" placeholder="Option 2" required />
+      <input type="text" id="option3" placeholder="Option 3" required />
+      <input type="text" id="option4" placeholder="Option 4" required />
     </div>
     <div class="form-group">
       <label for="correctAnswer">Correct Answer</label>
@@ -1622,16 +1625,16 @@ const publicPath = path.join(__dirname, "..", "frontend", "public");
 app.use(express.static(publicPath));
 
 // Clean connection without deprecated options
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/quiz-app")
   .then(() => {
     console.log("✓ Connected to MongoDB successfully");
     
     // Start server after MongoDB connection
-    const PORT = process.env.PORT ;
+    const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
-      console.log(`✓ Server running on ${PORT}`);
-      console.log(`✓ Frontend available at ${process.env.URL}${PORT}`);
-      console.log(`✓ Admin panel available at ${process.env.URL}${PORT}/admin/login`);
+      console.log(`✓ Server running on http://localhost:${PORT}`);
+      console.log(`✓ Frontend available at http://localhost:${PORT}`);
+      console.log(`✓ Admin panel available at http://localhost:${PORT}/admin/login`);
     });
   })
   .catch((err) => {
