@@ -670,30 +670,6 @@ function generateAdminPage(content, activeTab = 'overview') {
       });
     }
 
-    // Delete a single result (shared by overview + results pages)
-    async function deleteResult(id) {
-      const msg = document.getElementById('resultsMessage');
-      if (!msg) return;
-      msg.textContent = '';
-      try {
-        const res = await fetch('/admin/results/' + id, { method: 'DELETE', credentials: 'include' });
-        const data = await res.json();
-        if (res.ok && data.status === 'success') {
-          msg.className = 'message success';
-          msg.textContent = 'Result deleted';
-          if (window.loadPageData) {
-            await loadPageData();
-          }
-        } else {
-          msg.className = 'message error';
-          msg.textContent = data.message || 'Failed to delete result';
-        }
-      } catch (err) {
-        msg.className = 'message error';
-        msg.textContent = 'Server error while deleting result';
-      }
-    }
-
     // Attach event listeners
     function attachEventListeners() {
       ${getEventListenersScript(activeTab)}
@@ -780,6 +756,26 @@ const overviewContent = `
         }
       } catch (err) {
         console.error('Failed to load admin data:', err);
+      }
+    }
+
+    async function deleteResult(id) {
+      const msg = document.getElementById('resultsMessage');
+      msg.textContent = '';
+      try {
+        const res = await fetch('/admin/results/' + id, { method: 'DELETE', credentials: 'include' });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          msg.className = 'message success';
+          msg.textContent = 'Result deleted';
+          await loadPageData();
+        } else {
+          msg.className = 'message error';
+          msg.textContent = data.message || 'Failed to delete result';
+        }
+      } catch (err) {
+        msg.className = 'message error';
+        msg.textContent = 'Server error while deleting result';
       }
     }
   </script>
@@ -1510,6 +1506,51 @@ app.delete("/admin/results/:id", requireAdmin, async (req, res) => {
       const classes = Array.isArray(req.session.adminClasses) ? req.session.adminClasses : [];
       if (!classes.includes(result.className)) {
         return res.status(403).json({ status: "error", message: "Not permitted to delete this result" });
+      }
+    }
+
+    // Also delete the result from the contestant's results array
+    if (result.contestant) {
+      const contestant = await Contestant.findById(result.contestant);
+      if (contestant && contestant.results && contestant.results.length > 0) {
+        // Convert result.responses to a comparable format
+        const resultResponses = result.responses;
+        const resultScore = result.score;
+        
+        // Remove matching results from contestant's results array
+        // Match by score and responses
+        contestant.results = contestant.results.filter(contestantResult => {
+          // If score doesn't match, keep it
+          if (contestantResult.score !== resultScore) {
+            return true;
+          }
+          
+          // Compare responses - convert Map to object for comparison
+          const contestantResponsesObj = contestantResult.responses instanceof Map 
+            ? Object.fromEntries(contestantResult.responses)
+            : contestantResult.responses;
+          
+          // Compare response objects
+          const resultResponsesKeys = Object.keys(resultResponses || {}).sort();
+          const contestantResponsesKeys = Object.keys(contestantResponsesObj || {}).sort();
+          
+          // If keys don't match, keep it
+          if (resultResponsesKeys.length !== contestantResponsesKeys.length) {
+            return true;
+          }
+          
+          // Check if all key-value pairs match
+          for (const key of resultResponsesKeys) {
+            if (resultResponses[key] !== contestantResponsesObj[key]) {
+              return true; // Keep this result as it doesn't match
+            }
+          }
+          
+          // If we get here, this result matches - remove it
+          return false;
+        });
+        
+        await contestant.save();
       }
     }
 
