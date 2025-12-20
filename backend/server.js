@@ -1139,15 +1139,19 @@ const resultsContent = `
             <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${r.score ?? '-'}</td>
             <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${date}</td>
             <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">
-              <button class="delete-result-btn" data-id="\${r._id}" style="background:#dc3545; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">Delete</button>
+              <button class="delete-result-btn" data-id="\${r._id}" style="background:#dc3545; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; pointer-events:auto; position:relative; z-index:1;">Delete</button>
             </td>
           </tr>\`;
         }).join('');
 
         document.querySelectorAll('.delete-result-btn').forEach(btn => {
           btn.addEventListener('click', async (e) => {
-            const id = e.target.getAttribute('data-id');
-            if (!id) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const button = e.currentTarget || e.target.closest('.delete-result-btn');
+            if (!button) return;
+            const id = button.getAttribute('data-id');
+            if (!id || button.disabled) return;
             if (!confirm('Delete this result?')) return;
             await deleteResult(id);
           });
@@ -1156,7 +1160,65 @@ const resultsContent = `
         console.error('Failed to load results:', err);
         msg.className = 'message error';
         msg.textContent = 'Server error while loading results.';
-        body.innerHTML = '<tr><td colspan="5" style="padding: 12px;">Error loading results</td></tr>';
+        body.innerHTML = '<tr><td colspan="6" style="padding: 12px;">Error loading results</td></tr>';
+      }
+    }
+
+    async function deleteResult(id) {
+      const msg = document.getElementById('resultsMessage');
+      const body = document.getElementById('resultsBody');
+      msg.textContent = '';
+      msg.className = '';
+      
+      // Disable button during deletion
+      const deleteBtn = document.querySelector(\`.delete-result-btn[data-id="\${id}"]\`);
+      if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.style.opacity = '0.6';
+        deleteBtn.style.cursor = 'not-allowed';
+        deleteBtn.textContent = 'Deleting...';
+      }
+      
+      try {
+        const res = await fetch('/admin/results/' + encodeURIComponent(id), { 
+          method: 'DELETE', 
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        let data;
+        try {
+          data = await res.json();
+        } catch (parseErr) {
+          throw new Error('Invalid server response');
+        }
+        
+        if (res.ok && data.status === 'success') {
+          msg.className = 'message success';
+          msg.textContent = 'Result deleted successfully';
+          await loadPageData();
+        } else {
+          msg.className = 'message error';
+          msg.textContent = data.message || 'Failed to delete result';
+          if (deleteBtn) {
+            deleteBtn.disabled = false;
+            deleteBtn.style.opacity = '1';
+            deleteBtn.style.cursor = 'pointer';
+            deleteBtn.textContent = 'Delete';
+          }
+        }
+      } catch (err) {
+        console.error('Error deleting result:', err);
+        msg.className = 'message error';
+        msg.textContent = 'Server error while deleting result: ' + (err.message || 'Unknown error');
+        if (deleteBtn) {
+          deleteBtn.disabled = false;
+          deleteBtn.style.opacity = '1';
+          deleteBtn.style.cursor = 'pointer';
+          deleteBtn.textContent = 'Delete';
+        }
       }
     }
   </script>
@@ -1230,9 +1292,9 @@ const classesContent = `
                 <div style="display:flex; gap:4px; align-items:center;">
                   <label style="margin:0; font-size:13px;">Quiz Time (min):</label>
                   <input type="number" id="quizTime-\${c}" value="\${minutes}" min="1" max="60" style="width:60px; padding:4px; border:1px solid #ddd; border-radius:4px;" />
-                  <button data-class="\${c}" class="save-time-btn" style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">Save</button>
+                  <button data-class="\${c}" class="save-time-btn" style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px; pointer-events:auto; position:relative; z-index:1;">Save</button>
                 </div>
-                <button data-class="\${c}" class="delete-class-btn" style="background:#dc3545; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">Delete</button>
+                <button data-class="\${c}" class="delete-class-btn" style="background:#dc3545; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; pointer-events:auto; position:relative; z-index:1;">Delete</button>
               </div>
             </td>
           </tr>\`;
@@ -1240,7 +1302,11 @@ const classesContent = `
         
         document.querySelectorAll('.save-time-btn').forEach(btn => {
           btn.addEventListener('click', async (e) => {
-            const cls = e.target.getAttribute('data-class');
+            e.preventDefault();
+            e.stopPropagation();
+            const button = e.currentTarget || e.target.closest('.save-time-btn');
+            if (!button || button.disabled) return;
+            const cls = button.getAttribute('data-class');
             const input = document.getElementById(\`quizTime-\${cls}\`);
             if (!cls || !input) return;
             const minutes = parseInt(input.value);
@@ -1254,7 +1320,11 @@ const classesContent = `
 
         document.querySelectorAll('.delete-class-btn').forEach(btn => {
           btn.addEventListener('click', async (e) => {
-            const cls = e.target.getAttribute('data-class');
+            e.preventDefault();
+            e.stopPropagation();
+            const button = e.currentTarget || e.target.closest('.delete-class-btn');
+            if (!button || button.disabled) return;
+            const cls = button.getAttribute('data-class');
             if (!cls) return;
             if (!confirm('Delete class ' + cls + '? This does not remove existing data but will hide it from admins.')) return;
             await deleteClass(cls);

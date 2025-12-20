@@ -200,9 +200,6 @@ router.put("/contestant/password", async (req, res) => {
 router.post("/question", async (req, res) => {
   try {
     if (!ensureAdminSession(req, res)) return;
-    if (!isSuperAdmin(req)) {
-      return res.status(403).json({ status: "error", message: "Only superadmin can create questions" });
-    }
     const { className, questionText, options, correctAnswer, quizCode } = req.body;
     const validClasses = await getValidClasses();
 
@@ -222,7 +219,16 @@ router.post("/question", async (req, res) => {
       });
     }
 
-    // Validation 3: Correct answer must match one of the options
+    // Validation 3: Check if admin has permission for this class
+    const allowed = getAdminClasses(req);
+    if (allowed !== null && !allowed.includes(className.trim())) {
+      return res.status(403).json({
+        status: "error",
+        message: "You are not permitted to add questions for this class"
+      });
+    }
+
+    // Validation 4: Correct answer must match one of the options
     if (!options.includes(correctAnswer)) {
       return res.status(400).json({
         status: "error",
@@ -263,19 +269,22 @@ router.post("/question", async (req, res) => {
   }
 });
 
-// Update a question (superadmin only)
+// Update a question
 router.put("/question/:id", async (req, res) => {
   try {
     if (!ensureAdminSession(req, res)) return;
-    if (!isSuperAdmin(req)) {
-      return res.status(403).json({ status: "error", message: "Only superadmin can update questions" });
-    }
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ status: "error", message: "Invalid question id" });
     }
     const question = await Question.findById(id);
     if (!question) return res.status(404).json({ status: "error", message: "Question not found" });
+
+    // Check if admin has permission for this question's class
+    const allowed = getAdminClasses(req);
+    if (allowed !== null && !allowed.includes(question.className)) {
+      return res.status(403).json({ status: "error", message: "Not permitted to update questions for this class" });
+    }
 
     const { questionText, options, correctAnswer, quizCode } = req.body;
     if (!questionText || !Array.isArray(options) || options.length !== 4 || !correctAnswer) {
@@ -298,19 +307,22 @@ router.put("/question/:id", async (req, res) => {
   }
 });
 
-// Delete question (superadmin only)
+// Delete question
 router.delete("/question/:id", async (req, res) => {
   try {
     if (!ensureAdminSession(req, res)) return;
-    if (!isSuperAdmin(req)) {
-      return res.status(403).json({ status: "error", message: "Only superadmin can delete questions" });
-    }
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ status: "error", message: "Invalid question id" });
     }
     const question = await Question.findById(id);
     if (!question) return res.status(404).json({ status: "error", message: "Question not found" });
+
+    // Check if admin has permission for this question's class
+    const allowed = getAdminClasses(req);
+    if (allowed !== null && !allowed.includes(question.className)) {
+      return res.status(403).json({ status: "error", message: "Not permitted to delete questions for this class" });
+    }
 
     await Question.deleteOne({ _id: id });
     res.json({ status: "success", message: "Question deleted" });
