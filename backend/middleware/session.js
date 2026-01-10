@@ -25,7 +25,14 @@ export const sessionMiddleware = session({
 
 
 
-// OLD SESSION CODE
+
+
+
+
+
+
+
+
 
 // session({
 //   name: "quiz.sid",
@@ -42,4 +49,14 @@ export const sessionMiddleware = session({
 //     sameSite: "none",    // REQUIRED for cross-origin
 //     maxAge: 1000 * 60 * 60 * 24 // 1 day
 //   }
-// }));
+// });
+
+
+
+
+
+
+
+
+// OLD SESSION CODE
+
