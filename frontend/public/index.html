@@ -594,6 +594,7 @@
     let timerInterval;
     let timeLeft = 300; // Default, will be updated from API
 let violationCount = 0;
+let submissionReason = null; // Track reason: "no respond", "rules violation", or null (normal)
 const API_BASE = `${window.location.origin}/api/quiz`;
 
 // Toast notification function
@@ -747,7 +748,8 @@ questionText;
         body: JSON.stringify({
           name: studentName,
           usn: studentUSN,
-          responses: answers
+          responses: answers,
+          status: submissionReason || "completed"
         })
       })
         .then(res => res.json())
@@ -773,6 +775,7 @@ questionText;
 
         if (timeLeft < 0) {
           clearInterval(timerInterval);
+          submissionReason = "no respond";
           showToast("Time's up! Submitting quiz...", "warning");
           setTimeout(() => submitQuiz(), 1000);
         }
@@ -814,7 +817,8 @@ function handleViolation(message) {
     return;
   }
 
-  if (violationCount > 2) {
+  if (violationCount >= 2) {
+    submissionReason = "rules violation";
     showToast(message + " Ending quiz...", "error", 3000);
     setTimeout(() => submitQuiz(), 1500);
   }
@@ -837,17 +841,31 @@ function displayResults(data) {
   const totalQuestions = data.totalQuestions || questions.length;
   const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
   const correctAnswers = data.correctAnswers || [];
+  const submissionStatus = data.submissionStatus || "completed";
 
   // Calculate statistics
   const correctCount = correctAnswers.filter(q => q.userAnswer === q.correctAnswer).length;
-  const incorrectCount = correctAnswers.filter(q => q.userAnswer && q.userAnswer !== q.correctAnswer).length;
-  const unansweredCount = correctAnswers.filter(q => !q.userAnswer || q.userAnswer === "Not answered").length;
+  const incorrectCount = correctAnswers.filter(q => q.userAnswer && q.userAnswer !== q.correctAnswer && q.userAnswer !== "Not answered" && q.userAnswer !== "no respond").length;
+  const unansweredCount = correctAnswers.filter(q => !q.userAnswer || q.userAnswer === "Not answered" || q.userAnswer === "no respond").length;
+
+  // Determine card style and message based on status
+  let cardMessage = `Congratulations, ${data.name || "Student"}!`;
+  let cardStyle = "background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);";
+  
+  if (submissionStatus === "no respond") {
+    cardMessage = `Time's Up, ${data.name || "Student"}!`;
+    cardStyle = "background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);";
+  } else if (submissionStatus === "rules violation") {
+    cardMessage = `Rules Violation, ${data.name || "Student"}!`;
+    cardStyle = "background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);";
+  }
 
   let resultHTML = `
-    <div class="result-card">
-      <h3>Congratulations, ${data.name || "Student"}!</h3>
+    <div class="result-card" style="${cardStyle}">
+      <h3>${cardMessage}</h3>
       <div class="score-display">${score}/${totalQuestions}</div>
       <p style="font-size: 18px; margin: 0;">Score: ${percentage}%</p>
+      ${submissionStatus !== "completed" ? `<p style="font-size: 14px; margin-top: 8px; opacity: 0.9;">Status: ${submissionStatus === "no respond" ? "No Response" : "Rules Violation"}</p>` : ""}
     </div>
 
     <div class="summary-stats">
@@ -865,16 +883,28 @@ function displayResults(data) {
       </div>
     </div>
 
-    <div class="result-details">
+    <div class="result-details-2">
       <h4>Detailed Results</h4>
   `;
 
   correctAnswers.forEach((item, index) => {
     const isCorrect = item.userAnswer === item.correctAnswer;
-    const isUnanswered = !item.userAnswer || item.userAnswer === "Not answered";
+    const isUnanswered = !item.userAnswer || item.userAnswer === "Not answered" || item.userAnswer === "no respond";
+    const isNoRespond = item.userAnswer === "no respond";
     let statusClass = "unanswered";
     if (isCorrect) statusClass = "correct";
     else if (!isUnanswered) statusClass = "incorrect";
+
+    let answerDisplay = "";
+    if (isNoRespond) {
+      answerDisplay = '⚠ No Response';
+    } else if (isUnanswered) {
+      answerDisplay = '⚠ Not Answered';
+    } else if (isCorrect) {
+      answerDisplay = `✓ Your Answer: ${item.userAnswer}`;
+    } else {
+      answerDisplay = `✗ Your Answer: ${item.userAnswer}`;
+    }
 
     resultHTML += `
       <div class="question-result ${statusClass}">
@@ -882,7 +912,7 @@ function displayResults(data) {
         <div class="answer-info">
           <span class="correct-answer">✓ Correct Answer: ${item.correctAnswer}</span>
           <span class="user-answer ${isCorrect ? 'correct' : 'incorrect'}">
-            ${isUnanswered ? '⚠ Not Answered' : (isCorrect ? '✓ Your Answer: ' : '✗ Your Answer: ')}${item.userAnswer}
+            ${answerDisplay}
           </span>
         </div>
       </div>

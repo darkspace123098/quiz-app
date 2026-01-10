@@ -4,8 +4,8 @@ const classRefSchema = new mongoose.Schema(
   {
     className: {
       type: String,
-      enum: ["BCA-I", "BCA-II", "BCA-III"],
       required: true,
+      trim: true,
     },
     contestants: [
       {
@@ -52,7 +52,7 @@ const adminSchema = new mongoose.Schema(
     managedClasses: [
       {
         type: String,
-        enum: ["BCA-I", "BCA-II", "BCA-III"],
+        trim: true,
       },
     ],
     classes: [classRefSchema],

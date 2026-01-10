@@ -335,7 +335,7 @@ router.delete("/question/:id", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { name, usn, responses } = req.body;
+    const { name, usn, responses, status: submissionStatus } = req.body;
     
     if (!usn) {
       return res.status(400).json({ status: "error", message: "USN is required" });
@@ -346,6 +346,7 @@ router.post("/", async (req, res) => {
     }
 
     let score = 0;
+    const finalStatus = submissionStatus || "completed";
 
     const contestant1 = await Contestant.findOne({ usn: usn.trim().toUpperCase() });
     if (!contestant1) {
@@ -371,12 +372,18 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ status: "error", message: "No valid questions found" });
     }
 
-    questions.forEach((question) => {
-      const qid = question._id.toString();
-      if (responses[qid] === question.correctAnswer) {
-        score++;
-      }
-    });
+    // If status is "no respond" or "rules violation", set score to 0
+    if (finalStatus === "no respond" || finalStatus === "rules violation") {
+      score = 0;
+    } else {
+      // Calculate score normally
+      questions.forEach((question) => {
+        const qid = question._id.toString();
+        if (responses[qid] === question.correctAnswer) {
+          score++;
+        }
+      });
+    }
 
     contestant1.results.push({
       responses,
@@ -390,7 +397,8 @@ router.post("/", async (req, res) => {
       name: contestant1.name,
       usn: contestant1.usn,
       responses,
-      score
+      score,
+      status: finalStatus
     });
 
     await contestant1.save();
@@ -398,12 +406,24 @@ router.post("/", async (req, res) => {
 
     // Get detailed results for response
     const totalQuestions = questions.length;
-    const correctAnswers = questions.map(q => ({
-      questionId: q._id.toString(),
-      questionText: q.questionText,
-      correctAnswer: q.correctAnswer,
-      userAnswer: responses[q._id.toString()] || "Not answered"
-    }));
+    const correctAnswers = questions.map(q => {
+      const qid = q._id.toString();
+      let userAnswer = responses[qid] || "";
+      
+      // If status is "no respond", mark empty answers as "no respond"
+      if (finalStatus === "no respond" && (!userAnswer || userAnswer === "")) {
+        userAnswer = "no respond";
+      } else if (!userAnswer || userAnswer === "") {
+        userAnswer = "Not answered";
+      }
+      
+      return {
+        questionId: qid,
+        questionText: q.questionText,
+        correctAnswer: q.correctAnswer,
+        userAnswer: userAnswer
+      };
+    });
 
     res.json({ 
       status: "success", 
@@ -412,7 +432,8 @@ router.post("/", async (req, res) => {
       name: contestant1.name,
       usn: contestant1.usn,
       className: contestant1.className,
-      correctAnswers
+      correctAnswers,
+      submissionStatus: finalStatus
     });
 
   } catch (err) {

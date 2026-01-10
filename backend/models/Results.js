@@ -32,6 +32,11 @@ const resultSchema = new Schema(
       type: Number,
       required: true
     },
+    status: {
+      type: String,
+      enum: ["completed", "no respond", "rules violation"],
+      default: "completed"
+    },
     submittedAt: {
       type: Date,
       default: Date.now
