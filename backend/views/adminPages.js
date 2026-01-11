@@ -574,19 +574,19 @@ export const overviewContent = `
   <div class="stat-grid">
     <div class="stat-card">
       <h3>Total Classes</h3>
-      <p id="totalClasses">0</p>
+      <p id="totalClasses">Loading...</p>
     </div>
     <div class="stat-card">
       <h3>Total Contestants</h3>
-      <p id="totalContestants">0</p>
+      <p id="totalContestants">Loading...</p>
     </div>
     <div class="stat-card">
       <h3>Total Questions</h3>
-      <p id="totalQuestions">0</p>
+      <p id="totalQuestions">Loading...</p>
     </div>
     <div class="stat-card">
       <h3>Total Results</h3>
-      <p id="totalResults">0</p>
+      <p id="totalResults">Loading...</p>
     </div>
   </div>
 
