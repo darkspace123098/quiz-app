@@ -574,7 +574,7 @@ export const overviewContent = `
   <div class="stat-grid">
     <div class="stat-card">
       <h3>Total Classes</h3>
-      <p id="totalClasses"><a href="https://www.flaticon.com/free-icons/loading" title="loading icons">Loading icons created by Freepik - Flaticon</a></p>
+      <p id="totalClasses">Loading...</p>
     </div>
     <div class="stat-card">
       <h3>Total Contestants</h3>
