@@ -11,7 +11,7 @@ export const sessionMiddleware = session({
     collectionName: "sessions",
   }),
   cookie: {
-    httpOnly: true,
+    httpOnly: false,
     secure: true,        // REQUIRED on Render (HTTPS)
     sameSite: "none",    // REQUIRED for cross-origin
     maxAge: 1000 * 60 * 60 * 24 // 1 day
@@ -33,30 +33,4 @@ export const sessionMiddleware = session({
 
 
 
-
-// session({
-//   name: "quiz.sid",
-//   secret: process.env.SESSION_SECRET,
-//   resave: false,
-//   saveUninitialized: false,
-//   store: MongoStore.create({
-//     mongoUrl: process.env.MONGODB_URI,
-//     collectionName: "sessions",
-//   }),
-//   cookie: {
-//     httpOnly: true,
-//     secure: true,        // REQUIRED on Render (HTTPS)
-//     sameSite: "none",    // REQUIRED for cross-origin
-//     maxAge: 1000 * 60 * 60 * 24 // 1 day
-//   }
-// });
-
-
-
-
-
-
-
-
-// OLD SESSION CODE
 
