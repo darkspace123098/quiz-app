@@ -33,9 +33,16 @@ const app = express();
 // Middleware
 app.use(corsMiddleware);
 app.use(json());
+app.set("trust proxy", 1);
 app.use(sessionMiddleware);
 
 // Register routes
+fetch("/api/admin/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  credentials: "include",
+  body: JSON.stringify(data)
+});
 app.use("/api/quiz", quizRouter);
 app.use("/admin", adminRouter);
 
