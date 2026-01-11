@@ -1,5 +1,4 @@
 import session from "express-session";
-import MongoStore from "connect-mongo";
 
 export const sessionMiddleware = session({
   name: "quiz.sid",
