@@ -248,6 +248,19 @@ const adminLoginPage = `<!DOCTYPE html>
       font-size: 13px;
       color: var(--text-muted);
     }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 32px 24px;
+        border-radius: 20px;
+      }
+      .brand-logo {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+      }
+      h2 { font-size: 20px; }
+    }
   </style>
 </head>
 <body>
@@ -263,7 +276,7 @@ const adminLoginPage = `<!DOCTYPE html>
         <div class="form-group">
           <label for="username">Username</label>
           <div class="input-wrapper">
-            <i data-lucide="user"></i>
+            <i data-lucide="user" style="pointer-events: none;"></i>
             <input type="text" id="username" placeholder="admin" required />
           </div>
         </div>
@@ -271,7 +284,7 @@ const adminLoginPage = `<!DOCTYPE html>
         <div class="form-group">
           <label for="password">Password</label>
           <div class="input-wrapper">
-            <i data-lucide="lock"></i>
+            <i data-lucide="lock" style="pointer-events: none;"></i>
             <input type="password" id="password" placeholder="••••••••" required />
             <button type="button" class="toggle-password" onclick="togglePassword(this)">Show</button>
           </div>
@@ -959,6 +972,11 @@ function generateAdminPage(content, activeTab = 'overview') {
       selectIds.forEach(id => {
         const sel = document.getElementById(id);
         if (!sel) return;
+        const currentVal = sel.value;
+        sel.innerHTML = '<option value="">Select a class</option>' + 
+          classList.map(c => `<option value="${c.className}">${c.className}</option>`).join('');
+        sel.value = currentVal;
+      });
     }
 
     // Restrict class dropdowns based on allowed classes
@@ -986,13 +1004,29 @@ function generateAdminPage(content, activeTab = 'overview') {
 
     // Logout handler
     async function logoutAdmin() {
+      if (!confirm('Are you sure you want to logout?')) return;
       try {
-        await fetch('/admin/logout', { method: 'POST' });
-        window.location.href = '/admin/login';
+        const res = await fetch('/admin/logout', { method: 'POST' });
+        if (res.ok) {
+          window.location.href = '/admin/login';
+        }
       } catch (err) {
         console.error('Logout failed:', err);
       }
     }
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', async () => {
+      await checkAuth();
+      await loadClasses();
+      // Only call loadPageData if it exists (defined in injected content)
+      if (typeof loadPageData === 'function') {
+        await loadPageData();
+      }
+      attachEventListeners();
+      applyClassRestrictions();
+      lucide.createIcons();
+    });
   </script>
 </body>
 </html>`;
@@ -1054,6 +1088,29 @@ const overviewContent = `
       <div class="stat-label">Total Results</div>
       <p class="stat-value" id="totalResults">0</p>
     </div>
+// Overview page content
+const overviewContent = `
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon"><i data-lucide="book-open"></i></div>
+      <div class="stat-label">Total Classes</div>
+      <p class="stat-value" id="totalClasses">0</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i data-lucide="users"></i></div>
+      <div class="stat-label">Total Contestants</div>
+      <p class="stat-value" id="totalContestants">0</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i data-lucide="help-circle"></i></div>
+      <div class="stat-label">Total Questions</div>
+      <p class="stat-value" id="totalQuestions">0</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i data-lucide="bar-chart-3"></i></div>
+      <div class="stat-label">Total Results</div>
+      <p class="stat-value" id="totalResults">0</p>
+    </div>
   </div>
 
   <div class="card">
@@ -1079,39 +1136,37 @@ const overviewContent = `
       lucide.createIcons();
     }
   </script>
-`;
-
 // Contestants page content
 const contestantsContent = `
   <div class="card">
     <h3 style="margin-top:0"><i data-lucide="user-plus" style="vertical-align:text-bottom; margin-right:8px"></i> Add Contestant</h3>
+    <div id="contestantMessage" class="message"></div>
     <form id="contestantForm">
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
         <div class="form-group">
-          <label for="contestantName">Contestant Name</label>
-          <input type="text" id="contestantName" placeholder="Full Name" required />
+          <label for="contestantName">Full Name</label>
+          <input type="text" id="contestantName" placeholder="Enter name" required />
         </div>
         <div class="form-group">
           <label for="contestantUSN">USN</label>
-          <input type="text" id="contestantUSN" placeholder="TY23BCA001" required />
+          <input type="text" id="contestantUSN" placeholder="Enter USN" required />
         </div>
         <div class="form-group">
-          <label for="contestantQuizCode">Quiz Code</label>
-          <input type="text" id="contestantQuizCode" placeholder="AI-ML-2025" required />
-        </div>
-        <div class="form-group">
-          <label for="contestantPassword">Password</label>
-          <input type="text" id="contestantPassword" placeholder="Set Password" required />
-        </div>
-        <div class="form-group" style="grid-column: span 2;">
           <label for="contestantClass">Class</label>
           <select id="contestantClass" required>
             <option value="">Select a class</option>
           </select>
         </div>
+        <div class="form-group">
+          <label for="contestantQuizCode">Quiz Code</label>
+          <input type="text" id="contestantQuizCode" placeholder="Enter quiz code" required />
+        </div>
+        <div class="form-group">
+          <label for="contestantPassword">Password</label>
+          <input type="text" id="contestantPassword" placeholder="Set password" required />
+        </div>
       </div>
-      <button type="submit" class="btn-primary" style="width:100%"><i data-lucide="save"></i> Save Contestant</button>
-      <div id="contestantMessage" class="message" style="margin-top:16px"></div>
+      <button type="submit" class="btn-primary" style="width:100%; margin-top:12px"><i data-lucide="save"></i> Add Contestant</button>
     </form>
   </div>
 
@@ -1153,21 +1208,25 @@ const contestantsContent = `
   <script>
     async function loadPageData() {
       await loadContestants();
+      const form = document.getElementById('contestantForm');
+      if (form) form.addEventListener('submit', addContestantHandler);
+      const editForm = document.getElementById('contestantEditForm');
+      if (editForm) editForm.addEventListener('submit', submitContestantEdit);
       lucide.createIcons();
     }
 
     async function loadContestants() {
       const list = document.getElementById('contestantList');
-      list.innerHTML = '<p>Loading contestants...</p>';
+      list.innerHTML = '<p style="padding:20px; text-align:center">Loading contestants...</p>';
       try {
         const res = await fetch('/api/quiz/contestant', { credentials: 'include' });
         const data = await res.json();
         if (!res.ok || data.status !== 'success') {
-          list.innerHTML = '<p>Failed to load contestants.</p>';
+          list.innerHTML = '<p style="padding:20px; text-align:center">Failed to load contestants.</p>';
           return;
         }
         if (!data.contestants || data.contestants.length === 0) {
-          list.innerHTML = '<p>No contestants found.</p>';
+          list.innerHTML = '<p style="padding:20px; text-align:center">No contestants found.</p>';
           return;
         }
 
@@ -1180,26 +1239,27 @@ const contestantsContent = `
                 <th>Class</th>
                 <th>Quiz Code</th>
                 <th>Password</th>
-                <th>Actions</th>
+                <th style="text-align:right">Actions</th>
               </tr>
             </thead>
             <tbody>
               \${data.contestants.map(c => \`
                 <tr>
-                  <td>\${c.name || '-'}</td>
-                  <td>\${c.usn || '-'}</td>
+                  <td style="font-weight:600">\${c.name || '-'}</td>
+                  <td><code>\${c.usn || '-'}</code></td>
                   <td>\${c.className || '-'}</td>
                   <td>\${c.quizCode || '-'}</td>
                   <td>\${c.quizPassword || '-'}</td>
-                  <td style="display:flex; gap:8px;">
-                    <button type="button" onclick="openContestantEditModal('\${c._id}', '\${(c.name || '').replace(/'/g, "\\\\'")}', '\${(c.usn || '').replace(/'/g, "\\\\'")}', '\${(c.quizCode || '').replace(/'/g, "\\\\'")}', '\${(c.quizPassword || '').replace(/'/g, "\\\\'")}')">Edit</button>
-                    <button type="button" class="logout-btn" onclick="deleteContestant('\${c._id}')">Delete</button>
+                  <td style="text-align:right">
+                    <button class="btn-outline" style="padding:6px 10px" onclick="openContestantEditModal('\${c._id}', '\${(c.name || '').replace(/'/g, "\\\\'")}', '\${(c.usn || '').replace(/'/g, "\\\\'")}', '\${(c.quizCode || '').replace(/'/g, "\\\\'")}', '\${(c.quizPassword || '').replace(/'/g, "\\\\'")}')"><i data-lucide="edit-2" style="width:14px;height:14px"></i></button>
+                    <button class="btn-danger" style="padding:6px 10px" onclick="deleteContestant('\${c._id}')"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
                   </td>
                 </tr>\`).join('')}
             </tbody>
           </table>\`;
+        lucide.createIcons();
       } catch (err) {
-        list.innerHTML = '<p>Server error while loading contestants.</p>';
+        list.innerHTML = '<p style="padding:20px; text-align:center">Server error while loading contestants.</p>';
       }
     }
 
@@ -1213,44 +1273,17 @@ const contestantsContent = `
       const msg = document.getElementById('contestantMessage');
       msg.textContent = '';
 
-      if (!name || !usn || !className || !quizCode || !quizPassword) {
-        msg.className = 'message error';
-        msg.textContent = 'Please fill all fields';
-        return;
-      }
-
       try {
         const res = await fetch('/api/quiz/contestant', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({
-            students: [{
-              name,
-              usn,
-              className,
-              quizCode,
-              quizPassword
-            }]
-          })
+          body: JSON.stringify({ students: [{ name, usn, className, quizCode, quizPassword }] })
         });
-        
-        let data;
-        try {
-          data = await res.json();
-        } catch (parseErr) {
-          msg.className = 'message error';
-          msg.textContent = 'Server returned invalid response. Status: ' + res.status;
-          console.error('Response parse error:', parseErr);
-          return;
-        }
-        
+        const data = await res.json();
         if (data.status === 'success') {
           msg.className = 'message success';
           msg.textContent = 'Contestant added successfully!';
-          document.getElementById('contestantName').value = '';
-          document.getElementById('contestantUSN').value = '';
-          document.getElementById('contestantQuizCode').value = '';
           document.getElementById('contestantPassword').value = '';
           document.getElementById('contestantClass').value = '';
           await loadContestants();
@@ -1790,57 +1823,24 @@ const resultsContent = `
       }
     }
 
-        document.querySelectorAll('.delete-result-btn').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const button = e.currentTarget || e.target.closest('.delete-result-btn');
-            if (!button) return;
-            const id = button.getAttribute('data-id');
-            if (!id || button.disabled) return;
-            if (!confirm('Delete this result?')) return;
-            await deleteResult(id);
-          });
-        });
-      } catch (err) {
-        console.error('Failed to load results:', err);
-        msg.className = 'message error';
-        msg.textContent = 'Server error while loading results.';
-        body.innerHTML = '<tr><td colspan="6" style="padding: 12px;">Error loading results</td></tr>';
-      }
+    function attachDeleteListeners() {
+      document.querySelectorAll('.delete-result-btn').forEach(btn => {
+        btn.onclick = async (e) => {
+          const id = btn.getAttribute('data-id');
+          if (!confirm('Delete this result?')) return;
+          await deleteResult(id);
+        };
+      });
     }
 
     async function deleteResult(id) {
       const msg = document.getElementById('resultsMessage');
-      const body = document.getElementById('resultsBody');
-      msg.textContent = '';
-      msg.className = '';
-      
-      // Disable button during deletion
-      const deleteBtn = document.querySelector(\`.delete-result-btn[data-id="\${id}"]\`);
-      if (deleteBtn) {
-        deleteBtn.disabled = true;
-        deleteBtn.style.opacity = '0.6';
-        deleteBtn.style.cursor = 'not-allowed';
-        deleteBtn.textContent = 'Deleting...';
-      }
-      
       try {
-        const res = await fetch('/admin/results/' + encodeURIComponent(id), { 
+        const res = await fetch('/admin/results/' + id, { 
           method: 'DELETE', 
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          credentials: 'include'
         });
-        
-        let data;
-        try {
-          data = await res.json();
-        } catch (parseErr) {
-          throw new Error('Invalid server response');
-        }
-        
+        const data = await res.json();
         if (res.ok && data.status === 'success') {
           msg.className = 'message success';
           msg.textContent = 'Result deleted successfully';
@@ -1848,23 +1848,10 @@ const resultsContent = `
         } else {
           msg.className = 'message error';
           msg.textContent = data.message || 'Failed to delete result';
-          if (deleteBtn) {
-            deleteBtn.disabled = false;
-            deleteBtn.style.opacity = '1';
-            deleteBtn.style.cursor = 'pointer';
-            deleteBtn.textContent = 'Delete';
-          }
         }
       } catch (err) {
-        console.error('Error deleting result:', err);
         msg.className = 'message error';
-        msg.textContent = 'Server error while deleting result: ' + (err.message || 'Unknown error');
-        if (deleteBtn) {
-          deleteBtn.disabled = false;
-          deleteBtn.style.opacity = '1';
-          deleteBtn.style.cursor = 'pointer';
-          deleteBtn.textContent = 'Delete';
-        }
+        msg.textContent = 'Server error while deleting result';
       }
     }
   </script>
@@ -1935,30 +1922,12 @@ const recordingsContent = `
 
   <script>
     let allRecordings = [];
-    async function loadPageData() {
-      const body = document.getElementById('recBody');
-      const msg  = document.getElementById('recMessage');
-      msg.textContent = '';
-      try {
-        const res  = await fetch('/api/proctor/list', { credentials: 'include' });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed');
-        allRecordings = data.recordings || [];
-        renderTable(allRecordings);
-      } catch (err) {
-        body.innerHTML = '<tr><td colspan="8" style="padding:32px; text-align:center; color:var(--error)">Error loading logs</td></tr>';
-      }
-      lucide.createIcons();
-    }
-
-  <script>
-    let allRecordings = [];
 
     async function loadPageData() {
       const body = document.getElementById('recBody');
       const msg  = document.getElementById('recMessage');
       msg.textContent = '';
-      body.innerHTML  = '<tr><td colspan="9" style="padding:16px;">Loading…</td></tr>';
+      body.innerHTML  = '<tr><td colspan="8" style="padding:16px;">Loading…</td></tr>';
       try {
         const res  = await fetch('/api/proctor/list', { credentials: 'include' });
         const data = await res.json();
@@ -1968,14 +1937,15 @@ const recordingsContent = `
       } catch (err) {
         msg.className   = 'message error';
         msg.textContent = 'Error loading recordings: ' + err.message;
-        body.innerHTML  = '<tr><td colspan="9" style="padding:16px;">Failed to load</td></tr>';
+        body.innerHTML  = '<tr><td colspan="8" style="padding:16px;">Failed to load</td></tr>';
       }
+      lucide.createIcons();
     }
 
     function renderTable(rows) {
       const body = document.getElementById('recBody');
       if (!rows.length) {
-        body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:#64748b;">No recordings found yet. Recordings appear here after students attempt a quiz.</td></tr>';
+        body.innerHTML = '<tr><td colspan="8" style="padding:16px;color:#64748b;">No recordings found yet. Recordings appear here after students attempt a quiz.</td></tr>';
         return;
       }
       body.innerHTML = rows.map(r => {
@@ -1992,18 +1962,18 @@ const recordingsContent = `
           <td>\${r.contestantName || '—'}</td>
           <td><code>\${r.contestantId}</code></td>
           <td><code>\${r.quizId}</code></td>
-          <td>\${r.className}</td>
           <td style="white-space:nowrap;">\${dt}</td>
           <td>\${r.sizeMB} MB</td>
           <td>\${score}</td>
           <td>\${malp}</td>
-          <td style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="rec-action-btn btn-play" onclick="openPlayer('\${r.filename}', '\${(r.contestantName || '—').replace(/'/g, "\\\\'")}')">▶ Play</button>
-            <a href="/api/proctor/download/\${encodeURIComponent(r.filename)}" download class="rec-action-btn btn-dl" style="text-decoration:none;display:inline-block;">⬇ Save</a>
-            <button class="rec-action-btn btn-del" onclick="deleteRec('\${r.filename}')">🗑 Delete</button>
+          <td style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+            <button class="btn-outline" onclick="openPlayer('\${r.filename}', '\${(r.contestantName || '—').replace(/'/g, "\\\\'")}')"><i data-lucide="play" style="width:14px;height:14px"></i></button>
+            <a href="/api/proctor/download/\${encodeURIComponent(r.filename)}" download class="btn-outline" style="text-decoration:none;"><i data-lucide="download" style="width:14px;height:14px"></i></a>
+            <button class="btn-danger" onclick="deleteRec('\${r.filename}')"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
           </td>
         </tr>\`;
       }).join('');
+      lucide.createIcons();
     }
 
     // Live filter
@@ -2022,12 +1992,12 @@ const recordingsContent = `
       const video = document.getElementById('proctorPlayer');
       const tEl   = document.getElementById('playerTitle');
       const meta  = document.getElementById('playerMeta');
-      tEl.textContent = '📹 ' + title;
+      tEl.textContent = title;
       video.src       = '/api/proctor/stream/' + encodeURIComponent(filename);
-      meta.innerHTML  = \`File: <code>\${filename}</code> &nbsp;|&nbsp; <a href="/api/proctor/download/\${encodeURIComponent(filename)}" download style="color:#60a5fa;">⬇ Download</a>\`;
+      meta.innerHTML  = \`File: <code>\${filename}</code>\`;
       modal.style.display = 'flex';
-      modal.classList.add('open');
       video.play().catch(() => {});
+      lucide.createIcons();
     }
 
     function closePlayer() {
@@ -2036,16 +2006,7 @@ const recordingsContent = `
       video.pause();
       video.src = '';
       modal.style.display = 'none';
-      modal.classList.remove('open');
     }
-
-    // Close on backdrop click
-    document.getElementById('playerModal').addEventListener('click', function(e) {
-      if (e.target === this) closePlayer();
-    });
-    document.getElementById('malpModal').addEventListener('click', function(e) {
-      if (e.target === this) closeMalpModal();
-    });
 
     function viewMalp(filename) {
       const rec = allRecordings.find(r => r.filename === filename);
@@ -2074,11 +2035,9 @@ const recordingsContent = `
               <span style="margin-left:auto;font-size:11px;color:#64748b;">\${time}</span>
             </div>
             <p style="margin:0;font-size:13px;color:#334155;line-height:1.4;">\${ev.description || 'No description available.'}</p>
-            \${ev.faceCount !== undefined ? \`<div style="margin-top:6px;font-size:11px;color:#475569;font-weight:600;">Faces detected: \${ev.faceCount}</div>\` : ''}
           </div>\`;
         }).join('');
       }
-      
       modal.style.display = 'flex';
     }
 
@@ -2087,7 +2046,7 @@ const recordingsContent = `
     }
 
     async function deleteRec(filename) {
-      if (!confirm('Delete this recording permanently? This cannot be undone.')) return;
+      if (!confirm('Delete this recording?')) return;
       const msg = document.getElementById('recMessage');
       try {
         const res  = await fetch('/api/proctor/recording/' + encodeURIComponent(filename), {
@@ -2096,7 +2055,7 @@ const recordingsContent = `
         const data = await res.json();
         if (res.ok && data.status === 'success') {
           msg.className   = 'message success';
-          msg.textContent = 'Recording deleted.';
+          msg.textContent = 'Recording deleted';
           await loadPageData();
         } else {
           throw new Error(data.message || 'Delete failed');
@@ -2106,7 +2065,7 @@ const recordingsContent = `
         msg.textContent = 'Error: ' + err.message;
       }
     }
-  <\/script>
+  </script>
 `;
 
 // Classes management page (superadmin only)
