@@ -50,15 +50,15 @@ router.post("/contestant", async (req, res) => {
     // Validate each student
     for (const student of students) {
       if (!student.name || !student.usn || !student.className || !student.quizCode || !student.quizPassword) {
-        return res.status(400).json({ 
-          status: "error", 
-          message: "Each student must have name, usn, className, quizCode, and quizPassword" 
+        return res.status(400).json({
+          status: "error",
+          message: "Each student must have name, usn, className, quizCode, and quizPassword"
         });
       }
       if (!validClasses.includes(student.className.trim())) {
-        return res.status(400).json({ 
-          status: "error", 
-          message: `Invalid className. Must be one of: ${validClasses.join(", ")}` 
+        return res.status(400).json({
+          status: "error",
+          message: `Invalid className. Must be one of: ${validClasses.join(", ")}`
         });
       }
       const allowed = getAdminClasses(req);
@@ -97,15 +97,35 @@ router.post("/contestant", async (req, res) => {
   } catch (err) {
     console.error("Failed to add contestants:", err);
     if (err.code === 11000) {
-      return res.status(400).json({ 
-        status: "error", 
-        message: "One or more USNs already exist" 
+      return res.status(400).json({
+        status: "error",
+        message: "One or more USNs already exist"
       });
     }
-    res.status(500).json({ 
-      status: "error", 
-      message: err.message || "Server error" 
+    res.status(500).json({
+      status: "error",
+      message: err.message || "Server error"
     });
+  }
+});
+
+// List contestants (filtered by admin class scope)
+router.get("/contestant", async (req, res) => {
+  try {
+    if (!ensureAdminSession(req, res)) return;
+    const allowed = getAdminClasses(req);
+    const filter = {};
+    if (allowed) filter.className = { $in: allowed };
+
+    const contestants = await Contestant.find(filter)
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(500)
+      .lean();
+
+    res.json({ status: "success", contestants });
+  } catch (err) {
+    console.error("Error listing contestants:", err);
+    res.status(500).json({ status: "error", message: "Server error" });
   }
 });
 
@@ -261,11 +281,31 @@ router.post("/question", async (req, res) => {
 
   } catch (err) {
     console.error("Error adding question:", err);
-    res.status(500).json({ 
-      status: "error", 
+    res.status(500).json({
+      status: "error",
       message: err.message || "Server error",
       error: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
+  }
+});
+
+// List questions (filtered by admin class scope)
+router.get("/question", async (req, res) => {
+  try {
+    if (!ensureAdminSession(req, res)) return;
+    const allowed = getAdminClasses(req);
+    const filter = {};
+    if (allowed) filter.className = { $in: allowed };
+
+    const questions = await Question.find(filter)
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(500)
+      .lean();
+
+    res.json({ status: "success", questions });
+  } catch (err) {
+    console.error("Error listing questions:", err);
+    res.status(500).json({ status: "error", message: "Server error" });
   }
 });
 
@@ -336,14 +376,14 @@ router.delete("/question/:id", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { name, usn, responses } = req.body;
-    
+
     if (!usn) {
       return res.status(400).json({ status: "error", message: "USN is required" });
     }
 
-    if (!responses || typeof responses !== 'object' || Object.keys(responses).length === 0) {
-      return res.status(400).json({ status: "error", message: "No responses provided" });
-    }
+    // Allow empty responses (e.g., for forced malpractice submissions at the start)
+    const normalizedResponses = (responses && typeof responses === 'object') ? responses : {};
+    const questionIdsInput = Object.keys(normalizedResponses);
 
     let score = 0;
 
@@ -357,29 +397,23 @@ router.post("/", async (req, res) => {
       return res.status(403).json({ status: "error", message: "Quiz already attempted" });
     }
 
-    const questionIds = Object.keys(responses)
+    const questionIds = questionIdsInput
       .filter(id => mongoose.Types.ObjectId.isValid(id))
       .map(id => new mongoose.Types.ObjectId(id));
-    
-    if (questionIds.length === 0) {
-      return res.status(400).json({ status: "error", message: "Invalid question IDs" });
+
+    // Calculate score only if there are responses
+    if (questionIds.length > 0) {
+      const questions = await Question.find({ _id: { $in: questionIds } });
+      questions.forEach((question) => {
+        const qid = question._id.toString();
+        if (normalizedResponses[qid] === question.correctAnswer) {
+          score++;
+        }
+      });
     }
-
-    const questions = await Question.find({ _id: { $in: questionIds } });
-
-    if (questions.length === 0) {
-      return res.status(400).json({ status: "error", message: "No valid questions found" });
-    }
-
-    questions.forEach((question) => {
-      const qid = question._id.toString();
-      if (responses[qid] === question.correctAnswer) {
-        score++;
-      }
-    });
 
     contestant1.results.push({
-      responses,
+      responses: normalizedResponses,
       score
     });
 
@@ -389,20 +423,26 @@ router.post("/", async (req, res) => {
       quizCode: contestant1.quizCode,
       name: contestant1.name,
       usn: contestant1.usn,
-      responses,
+      responses: normalizedResponses,
       score
     });
 
     await contestant1.save();
     await addReferencesToAdmin(contestant1.className, "results", [resultDoc._id]);
 
-    // Get detailed results for response
-    const totalQuestions = questions.length;
-    const correctAnswers = questions.map(q => ({
+    // Get all questions for this quiz to provide a complete breakdown (including unanswered ones)
+    const allQuizQuestions = await Question.find({ 
+      className: contestant1.className, 
+      quizCode: contestant1.quizCode 
+    });
+
+    const totalQuestions = allQuizQuestions.length;
+
+    const correctAnswers = allQuizQuestions.map(q => ({
       questionId: q._id.toString(),
       questionText: q.questionText,
       correctAnswer: q.correctAnswer,
-      userAnswer: responses[q._id.toString()] || "Not answered"
+      userAnswer: normalizedResponses[q._id.toString()] || "Not answered"
     }));
 
     res.json({ 
@@ -429,7 +469,7 @@ function getClassFromUSN(usn) {
 router.get("/random", async (req, res) => {
   try {
     const { usn, quizCode, password } = req.query;
-    
+
     if (!usn || !quizCode || !password) {
       return res.status(400).json({ error: "USN, quizCode, and password are required" });
     }
@@ -457,7 +497,6 @@ router.get("/random", async (req, res) => {
 
     const questions = await Question.aggregate([
       { $match: { className, quizCode: quizCode.trim() } },
-      { $sample: { size: 5 } },
       {
         $project: {
           _id: 1,

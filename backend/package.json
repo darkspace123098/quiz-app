@@ -6,6 +6,18 @@
   "scripts": {
     "start": "nodemon server.js"
   },
+  "nodemonConfig": {
+    "watch": [
+      "*.js",
+      "routes",
+      "models"
+    ],
+    "ignore": [
+      "uploads/**",
+      "node_modules/**"
+    ],
+    "ext": "js,mjs,cjs,json"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -15,8 +27,10 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
+    "fs-extra": "^11.2.0",
     "mongodb": "^7.0.0",
     "mongoose": "^8.14.2",
+    "multer": "^1.4.5-lts.1",
     "nodemon": "^3.1.11"
   }
 }

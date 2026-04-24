@@ -35,6 +35,23 @@ const resultSchema = new Schema(
     submittedAt: {
       type: Date,
       default: Date.now
+    },
+    // Proctor monitoring data
+    proctorVideoPath: {
+      type: String,
+      default: null
+    },
+    proctorLogPath: {
+      type: String,
+      default: null
+    },
+    malpracticeDetected: {
+      type: Boolean,
+      default: false
+    },
+    malpracticeDetails: {
+      type: Schema.Types.Mixed,
+      default: null
     }
   },
   {

@@ -1,7 +1,8 @@
+import { config } from "dotenv";
+config();
 import express, { json } from "express";
 import "mongoose";
 import cors from "cors";
-import { config } from "dotenv";
 import mongoose from "mongoose";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -12,8 +13,7 @@ import Question from "./models/Question.js";
 import Result from "./models/Results.js";
 import ClassModel from "./models/Class.js";
 import quizRouter from "./routes/quiz.js";
-
-config();
+import proctorRouter from "./routes/proctor.js";
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5000",
@@ -52,7 +52,8 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(json());
+app.use(json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "quiz-session-secret",
@@ -71,163 +72,257 @@ app.use(
 const adminLoginPage = `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Admin Login</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login | Quiz System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     :root {
-      --primary: #4f46e5;
-      --primary-light: #6366f1;
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
       --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #1e293b;
-      --muted: #64748b;
+      --text: #0f172a;
+      --text-muted: #64748b;
       --error: #ef4444;
+      --radius: 12px;
     }
+
     * { box-sizing: border-box; }
+    
     body {
-      font-family: "Inter", "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+      font-family: 'Plus Jakarta Sans', sans-serif;
       margin: 0;
+      background: radial-gradient(circle at top left, #e0e7ff, #f8fafc);
+      height: 100vh;
       display: flex;
+      align-items: center;
       justify-content: center;
-      align-items: center;
-      min-height: 100vh;
       color: var(--text);
-      padding: 16px;
     }
-    .login-card {
-      background: var(--card);
-      border: 1px solid rgba(0,0,0,0.08);
-      border-radius: 18px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-      padding: 32px;
+
+    .login-container {
       width: 100%;
-      max-width: 420px;
+      max-width: 440px;
+      padding: 24px;
     }
+
+    .login-card {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid white;
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05), 0 10px 10px -5px rgba(0,0,0,0.02);
+    }
+
     .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 8px;
+      text-align: center;
+      margin-bottom: 32px;
     }
-    .brand-badge {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
-      display: grid;
-      place-items: center;
-      font-weight: 700;
+
+    .brand-logo {
+      width: 48px;
+      height: 48px;
+      background: var(--primary);
       color: white;
+      border-radius: 12px;
+      display: inline-grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(99,102,241,0.3);
     }
+
     h2 {
-      margin: 0 0 4px 0;
-      color: var(--text);
+      margin: 0;
       font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
     }
-    p.subtitle {
-      margin: 0 0 18px 0;
-      color: var(--muted);
+
+    .subtitle {
+      color: var(--text-muted);
       font-size: 14px;
+      margin-top: 4px;
     }
+
+    .form-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+
     label {
       display: block;
-      margin-top: 14px;
-      margin-bottom: 6px;
+      font-size: 13px;
       font-weight: 600;
+      margin-bottom: 8px;
       color: var(--text);
-      font-size: 14px;
     }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: var(--text-muted);
+    }
+
     input {
       width: 100%;
-      padding: 12px;
-      border-radius: 10px;
+      padding: 12px 16px 12px 42px;
+      border-radius: var(--radius);
       border: 1px solid #e2e8f0;
-      background: #ffffff;
-      color: var(--text);
+      background: white;
+      font-family: inherit;
       font-size: 15px;
-      transition: border-color 0.15s, box-shadow 0.15s;
+      transition: all 0.2s ease;
     }
+
     input:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+      box-shadow: 0 0 0 4px rgba(99,102,241,0.1);
     }
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 22px;
+
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
       border: none;
-      border-radius: 10px;
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
-      color: #ffffff;
-      font-size: 15px;
+      color: var(--primary);
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(79,70,229,0.3);
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      padding: 4px 8px;
+      border-radius: 6px;
     }
-    button:hover {
+
+    .toggle-password:hover {
+      background: #f1f5f9;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 12px;
+    }
+
+    button[type="submit"]:hover {
+      background: var(--primary-dark);
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(79,70,229,0.4);
+      box-shadow: 0 10px 15px -3px rgba(99,102,241,0.3);
     }
+
     .message {
-      margin-top: 14px;
+      margin-top: 20px;
+      font-size: 14px;
       text-align: center;
-      font-size: 13px;
-      font-weight: 600;
       color: var(--error);
-      min-height: 18px;
+      font-weight: 500;
+      min-height: 20px;
     }
-    @media (max-width: 480px) {
-      .login-card {
-        padding: 24px;
-      }
-      h2 { font-size: 20px; }
+
+    .footer-text {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 13px;
+      color: var(--text-muted);
     }
   </style>
 </head>
 <body>
-  <div class="login-card">
-    <div class="brand">
-      <div class="brand-badge">QA</div>
-      <div>
-        <h2>Admin Login</h2>
-        <p class="subtitle">Secure access to quiz control panel</p>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-logo">QA</div>
+        <h2>Admin Portal</h2>
+        <p class="subtitle">Enter your credentials to continue</p>
       </div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <div class="input-wrapper">
+            <i data-lucide="user"></i>
+            <input type="text" id="username" placeholder="admin" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrapper">
+            <i data-lucide="lock"></i>
+            <input type="password" id="password" placeholder="••••••••" required />
+            <button type="button" class="toggle-password" onclick="togglePassword(this)">Show</button>
+          </div>
+        </div>
+
+        <button type="submit">Sign In</button>
+        <div id="loginMessage" class="message"></div>
+      </form>
     </div>
-    <form id="loginForm">
-      <label for="username">Username</label>
-      <input type="text" id="username" required />
-      <label for="password">Password</label>
-      <input type="password" id="password" required />
-      <button type="submit">Login</button>
-      <div id="loginMessage" class="message"></div>
-    </form>
+    
+    <div class="footer-text">
+      &copy; 2025 Quiz System. All rights reserved.
+    </div>
   </div>
 
   <script>
-    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    lucide.createIcons();
+
+    function togglePassword(btn) {
+      const input = document.getElementById('password');
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = 'Hide';
+      } else {
+        input.type = 'password';
+        btn.textContent = 'Show';
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value;
-      const msg = document.getElementById("loginMessage");
-      msg.textContent = "";
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const msg = document.getElementById('loginMessage');
+      msg.textContent = '';
 
       try {
-        const res = await fetch("/admin/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch('/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
+        
         if (res.ok) {
-          window.location.href = "/admin/overview";
+          window.location.href = '/admin/overview';
         } else {
           const data = await res.json();
-          msg.textContent = data.message || "Invalid credentials.";
+          msg.textContent = data.message || 'Invalid credentials';
         }
       } catch (err) {
-        msg.textContent = "Server error. Please try again.";
+        msg.textContent = 'Connection error. Please try again.';
       }
     });
   </script>
@@ -236,6 +331,9 @@ const adminLoginPage = `<!DOCTYPE html>
 
 // Register quiz routes (before static files)
 app.use("/api/quiz", quizRouter);
+
+// Register proctor routes for video and malpractice logging
+app.use("/api/proctor", proctorRouter);
 
 // Middleware to check admin authentication
 const requireAdmin = (req, res, next) => {
@@ -379,259 +477,481 @@ app.post("/admin/add", requireAdmin, async (req, res) => {
 // Helper function to generate admin page HTML with navigation
 function generateAdminPage(content, activeTab = 'overview') {
   return `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Admin Panel</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard | Quiz System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     :root {
-      --primary: #4f46e5;
-      --primary-dark: #4338ca;
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --primary-light: #818cf8;
+      --sidebar-bg: #0f172a;
+      --sidebar-text: #94a3b8;
+      --sidebar-active: #ffffff;
+      --sidebar-hover: #1e293b;
       --bg: #f8fafc;
-      --panel: #ffffff;
       --card: #ffffff;
       --border: #e2e8f0;
       --text: #1e293b;
-      --muted: #64748b;
-      --success: #22c55e;
+      --text-muted: #64748b;
+      --success: #10b981;
       --error: #ef4444;
+      --radius: 12px;
+      --radius-lg: 16px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
     }
+
     * { box-sizing: border-box; }
+    
     body {
-      font-family: "Inter", "Segoe UI", sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
       margin: 0;
-      background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+      background-color: var(--bg);
       color: var(--text);
+      display: flex;
       min-height: 100vh;
-      padding: 20px;
     }
-    .container { max-width: 1220px; margin: 0 auto; }
-    .header {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px 24px;
+
+    /* ── Sidebar ───────────────────────────────────────────────────────── */
+    .sidebar {
+      width: 260px;
+      background: var(--sidebar-bg);
+      color: var(--sidebar-text);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100vh;
+      z-index: 100;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-header {
+      padding: 32px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .brand-name {
+      color: white;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 0 12px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: var(--sidebar-text);
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      margin-bottom: 4px;
+    }
+
+    .nav-item i { width: 18px; height: 18px; }
+
+    .nav-item:hover {
+      background: var(--sidebar-hover);
+      color: white;
+    }
+
+    .nav-item.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+    }
+
+    .sidebar-footer {
+      padding: 24px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .admin-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px;
+      border-radius: 8px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: white;
+    }
+
+    .admin-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .admin-name {
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .admin-role {
+      font-size: 11px;
+      display: block;
+      opacity: 0.6;
+    }
+
+    /* ── Main Content ──────────────────────────────────────────────────── */
+    .main {
+      flex: 1;
+      margin-left: 260px;
+      padding: 40px;
+      min-width: 0;
+    }
+
+    .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 24px;
+      margin-bottom: 32px;
     }
-    .header h1 { margin: 0; color: var(--text); font-size: 24px; }
-    .nav-links {
+
+    .page-title {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .top-actions {
       display: flex;
-      gap: 10px;
-      margin: 0 0 24px 0;
-      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
     }
-    .nav-link {
-      padding: 10px 16px;
-      background: #ffffff;
-      color: var(--text);
-      text-decoration: none;
-      border-radius: 10px;
+
+    /* ── UI Components ────────────────────────────────────────────────── */
+    .card {
+      background: white;
+      border-radius: var(--radius-lg);
       border: 1px solid var(--border);
-      transition: background 0.15s, border-color 0.15s, transform 0.1s;
-    }
-    .nav-link:hover { background: #f1f5f9; border-color: var(--primary); }
-    .nav-link.active { background: var(--primary); border-color: var(--primary); color: #fff; }
-    h2 {
-      margin: 0 0 24px 0;
-      color: var(--text);
-      font-size: 22px;
-      font-weight: 700;
-    }
-    h3 {
-      margin: 0 0 16px 0;
-      color: var(--text);
-      font-size: 18px;
-      font-weight: 600;
-    }
-    h4 {
-      margin: 0 0 12px 0;
-      color: var(--text);
-      font-size: 16px;
-      font-weight: 600;
-    }
-    form {
+      box-shadow: var(--shadow);
+      padding: 24px;
       margin-bottom: 24px;
-      padding: 20px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
-    .form-group { margin-bottom: 20px; }
-    label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text); }
-    input, textarea, select {
-      width: 100%;
-      padding: 12px 14px;
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 24px;
+      border-radius: var(--radius-lg);
       border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .stat-icon {
+      width: 40px;
+      height: 40px;
       border-radius: 10px;
-      background: #ffffff;
-      color: var(--text);
-      font-size: 14px;
+      display: grid;
+      place-items: center;
+      background: #f1f5f9;
+      color: var(--primary);
     }
-    input:focus, textarea:focus, select:focus {
+
+    .stat-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 800;
+      margin: 0;
+      color: var(--text);
+    }
+
+    /* ── Forms ─────────────────────────────────────────────────────────── */
+    .form-group { margin-bottom: 20px; }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      background: #fcfcfd;
+    }
+
+    input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+      background: white;
+      box-shadow: 0 0 0 4px rgba(99,102,241,0.1);
     }
+
     button {
-      padding: 12px 20px;
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 10px;
+      padding: 10px 20px;
+      border-radius: var(--radius);
       font-weight: 700;
       font-size: 14px;
-      transition: transform 0.1s, box-shadow 0.1s;
-      margin-top: 8px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
     }
-    button:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(79,70,229,0.3); }
-    .message { margin: 16px 0; padding: 12px 16px; border-radius: 8px; }
-    .success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-    .error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-    .stat-grid { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); 
-      gap: 20px; 
-      margin-bottom: 24px;
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
     }
-    .stat-card {
-      background: var(--card);
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+    }
+
+    .btn-outline {
+      background: white;
       border: 1px solid var(--border);
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      color: var(--text);
     }
-    .stat-card h3 { margin: 0 0 12px 0; color: var(--muted); font-size: 14px; letter-spacing: 0.2px; }
-    .stat-card p { font-size: 32px; font-weight: 700; margin: 0; color: var(--primary); }
-    .superadmin-only { display: none; }
-    .superadmin-only.show { display: block; }
-    .logout-btn { background: #dc3545; }
-    .logout-btn:hover { background: #c82333; }
-    #adminUsername { color: var(--muted); font-size: 14px; margin-right: 12px; }
+
+    .btn-outline:hover {
+      background: #f8fafc;
+      border-color: var(--text-muted);
+    }
+
+    .btn-danger {
+      background: #fef2f2;
+      color: var(--error);
+      border: 1px solid #fee2e2;
+    }
+
+    .btn-danger:hover {
+      background: var(--error);
+      color: white;
+    }
+
+    /* ── Tables ────────────────────────────────────────────────────────── */
+    .table-container {
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      background: var(--card);
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      margin-bottom: 24px;
     }
-    table thead {
+
+    th {
       background: #f8fafc;
-    }
-    table th {
-      padding: 14px 16px;
+      padding: 14px 20px;
       text-align: left;
-      font-weight: 600;
-      color: var(--text);
-      border-bottom: 2px solid var(--border);
-      font-size: 14px;
-    }
-    table td {
-      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       border-bottom: 1px solid var(--border);
-      color: var(--text);
+    }
+
+    td {
+      padding: 14px 20px;
+      border-bottom: 1px solid #f1f5f9;
       font-size: 14px;
+      color: var(--text);
     }
-    table tbody tr:last-child td {
-      border-bottom: none;
+
+    tr:last-child td { border-bottom: none; }
+    
+    tr:hover td { background: #fcfcfd; }
+
+    /* ── Alerts ────────────────────────────────────────────────────────── */
+    .message {
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 20px;
     }
-    table tbody tr:hover {
-      background: #f8fafc;
-    }
-    .content-section {
-      margin-bottom: 32px;
-    }
-    @media (max-width: 720px) {
-      body { padding: 14px; }
-      .header { flex-direction: column; align-items: flex-start; margin-bottom: 20px; }
-      .nav-links { gap: 8px; margin-bottom: 20px; }
-      .nav-link { width: fit-content; }
-      form { padding: 16px; }
-      .stat-grid { gap: 12px; }
+
+    .message.success { background: #ecfdf5; color: #065f46; border: 1px solid #d1fae5; }
+    .message.error   { background: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; }
+
+    /* ── Mobile ────────────────────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .sidebar { transform: translateX(-100%); }
+      .main { margin-left: 0; padding: 24px; }
+      body.sidebar-open .sidebar { transform: translateX(0); }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>Admin Panel</h1>
-      <div>
-        <span id="adminUsername"></span>
-        <a href="/admin/classes" class="superadmin-only" id="addClassBtn" style="display: none; margin-right: 10px; padding: 8px 16px; background: #6f42c1; color: white; text-decoration: none; border-radius: 4px;">Manage Classes</a>
-        <a href="/admin/add" class="add-admin-btn superadmin-only" id="addAdminBtn" style="display: none; margin-right: 10px; padding: 8px 16px; background: #17a2b8; color: white; text-decoration: none; border-radius: 4px;">Add Admin</a>
-        <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-logo">QA</div>
+      <span class="brand-name">QuizAdmin</span>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <a href="/admin/overview" class="nav-item ${activeTab === 'overview' ? 'active' : ''}">
+        <i data-lucide="layout-grid"></i> Overview
+      </a>
+      <a href="/admin/contestants" class="nav-item ${activeTab === 'contestants' ? 'active' : ''}">
+        <i data-lucide="users"></i> Contestants
+      </a>
+      <a href="/admin/questions" class="nav-item ${activeTab === 'questions' ? 'active' : ''}">
+        <i data-lucide="help-circle"></i> Questions
+      </a>
+      <a href="/admin/results" class="nav-item ${activeTab === 'results' ? 'active' : ''}">
+        <i data-lucide="bar-chart-3"></i> Results
+      </a>
+      <a href="/admin/recordings" class="nav-item ${activeTab === 'recordings' ? 'active' : ''}">
+        <i data-lucide="video"></i> Proctor Logs
+      </a>
+      <a href="/admin/classes" class="nav-item superadmin-only ${activeTab === 'classes' ? 'active' : ''}" style="display: none;">
+        <i data-lucide="book-open"></i> Manage Classes
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="admin-profile">
+        <div class="avatar"><i data-lucide="user"></i></div>
+        <div class="admin-info">
+          <span class="admin-name" id="profileName">Admin</span>
+          <span class="admin-role" id="profileRole">Administrator</span>
+        </div>
       </div>
+      <button onclick="logoutAdmin()" class="btn-danger" style="width: 100%; margin-top: 16px; padding: 8px;">
+        <i data-lucide="log-out"></i> Logout
+      </button>
     </div>
+  </aside>
 
-    <div class="nav-links">
-      <a href="/admin/overview" class="nav-link ${activeTab === 'overview' ? 'active' : ''}">Overview</a>
-      <a href="/admin/contestants" class="nav-link ${activeTab === 'contestants' ? 'active' : ''}">Contestants</a>
-      <a href="/admin/questions" class="nav-link ${activeTab === 'questions' ? 'active' : ''}">Questions</a>
-      <a href="/admin/results" class="nav-link ${activeTab === 'results' ? 'active' : ''}">Results</a>
-      <a href="/admin/classes" class="nav-link superadmin-only ${activeTab === 'classes' ? 'active' : ''}" style="display: none;">Classes</a>
+  <main class="main">
+    <header class="top-bar">
+      <h2 class="page-title">${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h2>
+      <div class="top-actions">
+        <a href="/admin/classes" class="btn-outline superadmin-only" id="addClassBtn" style="display: none; text-decoration: none;">
+          <i data-lucide="plus-circle"></i> Classes
+        </a>
+        <a href="/admin/add" class="btn-primary superadmin-only" id="addAdminBtn" style="display: none; text-decoration: none;">
+          <i data-lucide="user-plus"></i> New Admin
+        </a>
+        <button onclick="loadPageData()" class="btn-outline">
+          <i data-lucide="refresh-cw"></i> Refresh
+        </button>
+      </div>
+    </header>
+
+    <div id="mainContent">
+      ${content}
     </div>
-
-    ${content}
-  </div>
+  </main>
 
   <script>
-    // Load admin data on page load
-    window.addEventListener('load', async () => {
-      await checkUserRole();
-      await loadClasses();
-      applyClassRestrictions();
-      if (window.loadPageData) {
-        await loadPageData();
-      }
-      attachEventListeners();
-    });
-
-    // Check user role
-    async function checkUserRole() {
+    lucide.createIcons();
+    
+    // Check role and update UI
+    async function checkAuth() {
       try {
-        const res = await fetch('/admin/role');
+        const res = await fetch('/admin/role', { credentials: 'include' });
         const data = await res.json();
         
-        document.getElementById('adminUsername').textContent = 'Logged in as: ' + data.username;
-        window.isSuperadmin = data.role === 'superadmin';
-        window.allowedClasses = Array.isArray(data.allowedClasses) ? data.allowedClasses : [];
-        
-        if (window.isSuperadmin) {
-          document.getElementById('addAdminBtn').style.display = 'inline-block';
-          document.getElementById('addClassBtn').style.display = 'inline-block';
-          document.querySelectorAll('.superadmin-only').forEach(el => {
-            el.classList.add('show');
-          });
+        if (data.username) {
+          document.getElementById('profileName').textContent = data.username;
+          document.getElementById('profileRole').textContent = data.role.toUpperCase();
+          window.isSuperadmin = data.role === 'superadmin';
+          window.allowedClasses = Array.isArray(data.allowedClasses) ? data.allowedClasses : [];
+          
+          if (window.isSuperadmin) {
+            document.querySelectorAll('.superadmin-only').forEach(el => {
+              el.style.display = 'inline-flex';
+              if (el.tagName === 'A' && el.classList.contains('nav-item')) el.style.display = 'flex';
+            });
+          }
         }
-      } catch (err) {
-        console.error('Failed to check role:', err);
-      }
+      } catch (err) {}
     }
 
-    // Load classes for dropdowns/checkboxes (returns only allowed classes for admins)
     async function loadClasses() {
       try {
         const res = await fetch('/admin/classes/data', { credentials: 'include' });
         const data = await res.json();
-        if (!res.ok || data.status !== 'success') {
-          console.error('Failed to load classes', data);
-          return;
+        if (data.status === 'success') {
+          const classes = data.classes || [];
+          renderClassOptions(classes);
         }
-        const classes = data.classes || [];
-        window.loadedClasses = classes;
-        renderClassOptions(classes);
-        renderClassCheckboxes(classes);
-      } catch (err) {
-        console.error('Error loading classes:', err);
-      }
+      } catch (err) {}
     }
 
     function renderClassOptions(classList) {
@@ -639,17 +959,6 @@ function generateAdminPage(content, activeTab = 'overview') {
       selectIds.forEach(id => {
         const sel = document.getElementById(id);
         if (!sel) return;
-        sel.innerHTML = '<option value=\"\">Select a class</option>' + classList.map(c => \`<option value=\"\${c}\">\${c}</option>\`).join('');
-      });
-    }
-
-    function renderClassCheckboxes(classList) {
-      const box = document.getElementById('classCheckboxes');
-      if (!box) return;
-      box.innerHTML = classList.map(c => \`
-        <label style="display:flex; align-items:center; gap:6px; white-space: nowrap;">
-          <input type="checkbox" class="admin-class-checkbox" value="\${c}" /> \${c}
-        </label>\`).join('');
     }
 
     // Restrict class dropdowns based on allowed classes
@@ -724,22 +1033,35 @@ function getEventListenersScript(activeTab) {
 
 // Overview page content
 const overviewContent = `
-  <h2>Overview</h2>
-  <div class="stat-card">
-    <h3>Total Classes</h3>
-    <p id="totalClasses">0</p>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon"><i data-lucide="book-open"></i></div>
+      <div class="stat-label">Total Classes</div>
+      <p class="stat-value" id="totalClasses">0</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i data-lucide="users"></i></div>
+      <div class="stat-label">Total Contestants</div>
+      <p class="stat-value" id="totalContestants">0</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i data-lucide="help-circle"></i></div>
+      <div class="stat-label">Total Questions</div>
+      <p class="stat-value" id="totalQuestions">0</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i data-lucide="bar-chart-3"></i></div>
+      <div class="stat-label">Total Results</div>
+      <p class="stat-value" id="totalResults">0</p>
+    </div>
   </div>
-  <div class="stat-card">
-    <h3>Total Contestants</h3>
-    <p id="totalContestants">0</p>
-  </div>
-  <div class="stat-card">
-    <h3>Total Questions</h3>
-    <p id="totalQuestions">0</p>
-  </div>
-  <div class="stat-card">
-    <h3>Total Results</h3>
-    <p id="totalResults">0</p>
+
+  <div class="card">
+    <h3 style="margin-top:0"><i data-lucide="info" style="vertical-align:text-bottom; margin-right:8px"></i> Quick Guide</h3>
+    <p style="color:var(--text-muted); font-size:14px; line-height:1.6">
+      Welcome to the Quiz Admin Dashboard. Use the sidebar to manage your quiz ecosystem. 
+      You can track student participation, manage question banks, and monitor live proctoring recordings for malpractice.
+    </p>
   </div>
 
   <script>
@@ -747,93 +1069,138 @@ const overviewContent = `
       try {
         const res = await fetch('/admin/data');
         const data = await res.json();
-
         if (data.status === 'success') {
           document.getElementById('totalClasses').textContent = data.data.totalClasses || 0;
           document.getElementById('totalContestants').textContent = data.data.totalContestants || 0;
           document.getElementById('totalQuestions').textContent = data.data.totalQuestions || 0;
           document.getElementById('totalResults').textContent = data.data.totalResults || 0;
         }
-      } catch (err) {
-        console.error('Failed to load admin data:', err);
-      }
-    }
-
-    async function deleteResult(id) {
-      const msg = document.getElementById('resultsMessage');
-      msg.textContent = '';
-      try {
-        const res = await fetch('/admin/results/' + id, { method: 'DELETE', credentials: 'include' });
-        const data = await res.json();
-        if (res.ok && data.status === 'success') {
-          msg.className = 'message success';
-          msg.textContent = 'Result deleted';
-          await loadPageData();
-        } else {
-          msg.className = 'message error';
-          msg.textContent = data.message || 'Failed to delete result';
-        }
-      } catch (err) {
-        msg.className = 'message error';
-        msg.textContent = 'Server error while deleting result';
-      }
+      } catch (err) {}
+      lucide.createIcons();
     }
   </script>
 `;
 
 // Contestants page content
 const contestantsContent = `
-  <h2>Contestants</h2>
-  <form id="contestantForm">
-    <div class="form-group">
-      <label for="contestantName">Contestant Name</label>
-      <input type="text" id="contestantName" required />
-    </div>
-    <div class="form-group">
-      <label for="contestantUSN">USN (e.g., TY23BCA001)</label>
-      <input type="text" id="contestantUSN" required placeholder="TY23BCA001" />
-    </div>
-    <div class="form-group">
-      <label for="contestantQuizCode">Quiz Code</label>
-      <input type="text" id="contestantQuizCode" required placeholder="e.g., AI-ML-2025" />
-    </div>
-    <div class="form-group">
-      <label for="contestantPassword">Contestant Password (assigned by admin)</label>
-      <input type="text" id="contestantPassword" required placeholder="Password for this contestant" />
-    </div>
-    <div class="form-group">
-      <label for="contestantClass">Class</label>
-      <select id="contestantClass" required>
-        <option value="">Select a class</option>
-      </select>
-    </div>
-    <button type="submit">Add Contestant</button>
-    <div id="contestantMessage" class="message"></div>
-  </form>
-  <div class="content-section">
-    <h3>Update Contestant Credentials</h3>
-    <form id="updateContestantCredentialsForm">
-      <div class="form-group">
-        <label for="updateUSN">USN</label>
-        <input type="text" id="updateUSN" required placeholder="TY23BCA001" />
+  <div class="card">
+    <h3 style="margin-top:0"><i data-lucide="user-plus" style="vertical-align:text-bottom; margin-right:8px"></i> Add Contestant</h3>
+    <form id="contestantForm">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label for="contestantName">Contestant Name</label>
+          <input type="text" id="contestantName" placeholder="Full Name" required />
+        </div>
+        <div class="form-group">
+          <label for="contestantUSN">USN</label>
+          <input type="text" id="contestantUSN" placeholder="TY23BCA001" required />
+        </div>
+        <div class="form-group">
+          <label for="contestantQuizCode">Quiz Code</label>
+          <input type="text" id="contestantQuizCode" placeholder="AI-ML-2025" required />
+        </div>
+        <div class="form-group">
+          <label for="contestantPassword">Password</label>
+          <input type="text" id="contestantPassword" placeholder="Set Password" required />
+        </div>
+        <div class="form-group" style="grid-column: span 2;">
+          <label for="contestantClass">Class</label>
+          <select id="contestantClass" required>
+            <option value="">Select a class</option>
+          </select>
+        </div>
       </div>
-      <div class="form-group">
-        <label for="updateQuizCode">New Quiz Code (optional)</label>
-        <input type="text" id="updateQuizCode" placeholder="Leave blank to keep existing" />
-      </div>
-      <div class="form-group">
-        <label for="updatePassword">New Quiz Password (leave blank to clear)</label>
-        <input type="text" id="updatePassword" placeholder="Leave blank to clear password" />
-      </div>
-      <button type="submit">Update Credentials</button>
-      <div id="updateCredentialsMessage" class="message"></div>
+      <button type="submit" class="btn-primary" style="width:100%"><i data-lucide="save"></i> Save Contestant</button>
+      <div id="contestantMessage" class="message" style="margin-top:16px"></div>
     </form>
   </div>
-  <div id="contestantList"></div>
+
+  <div class="card">
+    <h3 style="margin-top:0"><i data-lucide="users" style="vertical-align:text-bottom; margin-right:8px"></i> Manage Contestants</h3>
+    <div class="table-container">
+      <div id="contestantList"></div>
+    </div>
+  </div>
+
+  <div id="contestantEditModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.7); z-index:9999; align-items:center; justify-content:center; padding:24px; backdrop-filter:blur(4px);">
+    <div class="card" style="width:100%; max-width:520px; margin:0;">
+      <h3 style="margin-top:0">Edit Contestant</h3>
+      <form id="contestantEditForm">
+        <div class="form-group">
+          <label for="editContestantName">Name</label>
+          <input type="text" id="editContestantName" required />
+        </div>
+        <div class="form-group">
+          <label for="editContestantUSN">USN</label>
+          <input type="text" id="editContestantUSN" required />
+        </div>
+        <div class="form-group">
+          <label for="editContestantQuizCode">Quiz Code</label>
+          <input type="text" id="editContestantQuizCode" required />
+        </div>
+        <div class="form-group">
+          <label for="editContestantPassword">Password</label>
+          <input type="text" id="editContestantPassword" required />
+        </div>
+        <div style="display:flex; gap:12px; margin-top:24px;">
+          <button type="submit" class="btn-primary" style="flex:1"><i data-lucide="check"></i> Save Changes</button>
+          <button type="button" class="btn-outline" onclick="closeContestantEditModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script>
     async function loadPageData() {
-      // Load contestants list if needed
+      await loadContestants();
+      lucide.createIcons();
+    }
+
+    async function loadContestants() {
+      const list = document.getElementById('contestantList');
+      list.innerHTML = '<p>Loading contestants...</p>';
+      try {
+        const res = await fetch('/api/quiz/contestant', { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok || data.status !== 'success') {
+          list.innerHTML = '<p>Failed to load contestants.</p>';
+          return;
+        }
+        if (!data.contestants || data.contestants.length === 0) {
+          list.innerHTML = '<p>No contestants found.</p>';
+          return;
+        }
+
+        list.innerHTML = \`
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>USN</th>
+                <th>Class</th>
+                <th>Quiz Code</th>
+                <th>Password</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              \${data.contestants.map(c => \`
+                <tr>
+                  <td>\${c.name || '-'}</td>
+                  <td>\${c.usn || '-'}</td>
+                  <td>\${c.className || '-'}</td>
+                  <td>\${c.quizCode || '-'}</td>
+                  <td>\${c.quizPassword || '-'}</td>
+                  <td style="display:flex; gap:8px;">
+                    <button type="button" onclick="openContestantEditModal('\${c._id}', '\${(c.name || '').replace(/'/g, "\\\\'")}', '\${(c.usn || '').replace(/'/g, "\\\\'")}', '\${(c.quizCode || '').replace(/'/g, "\\\\'")}', '\${(c.quizPassword || '').replace(/'/g, "\\\\'")}')">Edit</button>
+                    <button type="button" class="logout-btn" onclick="deleteContestant('\${c._id}')">Delete</button>
+                  </td>
+                </tr>\`).join('')}
+            </tbody>
+          </table>\`;
+      } catch (err) {
+        list.innerHTML = '<p>Server error while loading contestants.</p>';
+      }
     }
 
     async function addContestantHandler(e) {
@@ -886,6 +1253,7 @@ const contestantsContent = `
           document.getElementById('contestantQuizCode').value = '';
           document.getElementById('contestantPassword').value = '';
           document.getElementById('contestantClass').value = '';
+          await loadContestants();
         } else {
           msg.className = 'message error';
           msg.textContent = data.message || 'Failed to add contestant';
@@ -897,41 +1265,82 @@ const contestantsContent = `
       }
     }
 
-    async function updateContestantCredentialsHandler(e) {
+    let editingContestantId = null;
+
+    function openContestantEditModal(id, name, usn, quizCode, quizPassword) {
+      editingContestantId = id;
+      document.getElementById('editContestantName').value = name || '';
+      document.getElementById('editContestantUSN').value = usn || '';
+      document.getElementById('editContestantQuizCode').value = quizCode || '';
+      document.getElementById('editContestantPassword').value = quizPassword || '';
+      document.getElementById('contestantEditModal').style.display = 'flex';
+    }
+
+    function closeContestantEditModal() {
+      editingContestantId = null;
+      document.getElementById('contestantEditModal').style.display = 'none';
+    }
+
+    async function submitContestantEdit(e) {
       e.preventDefault();
-      const usn = document.getElementById('updateUSN').value.trim().toUpperCase();
-      const quizCode = document.getElementById('updateQuizCode').value.trim();
-      const quizPassword = document.getElementById('updatePassword').value;
-      const msg = document.getElementById('updateCredentialsMessage');
-      msg.textContent = '';
-
-      if (!usn) {
-        msg.className = 'message error';
-        msg.textContent = 'USN is required';
-        return;
-      }
-
+      if (!editingContestantId) return;
+      const updatedName = document.getElementById('editContestantName').value.trim();
+      const updatedUsn = document.getElementById('editContestantUSN').value.trim().toUpperCase();
+      const updatedQuizCode = document.getElementById('editContestantQuizCode').value.trim();
+      const updatedPassword = document.getElementById('editContestantPassword').value;
       try {
-        const res = await fetch('/api/quiz/contestant/password', {
+        const res = await fetch('/api/quiz/contestant/' + editingContestantId, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ usn, quizCode: quizCode || undefined, quizPassword })
+          body: JSON.stringify({
+            name: updatedName.trim(),
+            usn: updatedUsn.trim().toUpperCase(),
+            quizCode: updatedQuizCode.trim(),
+            quizPassword: updatedPassword
+          })
         });
         const data = await res.json();
+        const msg = document.getElementById('contestantMessage');
         if (res.ok && data.status === 'success') {
           msg.className = 'message success';
-          msg.textContent = 'Credentials updated';
-          document.getElementById('updateUSN').value = '';
-          document.getElementById('updateQuizCode').value = '';
-          document.getElementById('updatePassword').value = '';
+          msg.textContent = 'Contestant updated successfully';
+          closeContestantEditModal();
+          await loadContestants();
         } else {
           msg.className = 'message error';
-          msg.textContent = data.message || 'Failed to update credentials';
+          msg.textContent = data.message || 'Failed to update contestant';
         }
       } catch (err) {
+        const msg = document.getElementById('contestantMessage');
         msg.className = 'message error';
-        msg.textContent = 'Server error updating credentials';
+        msg.textContent = 'Server error while updating contestant';
+      }
+    }
+
+    document.getElementById('contestantEditForm').addEventListener('submit', submitContestantEdit);
+
+    async function deleteContestant(id) {
+      if (!confirm('Delete this contestant?')) return;
+      try {
+        const res = await fetch('/api/quiz/contestant/' + id, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        const data = await res.json();
+        const msg = document.getElementById('contestantMessage');
+        if (res.ok && data.status === 'success') {
+          msg.className = 'message success';
+          msg.textContent = 'Contestant deleted successfully';
+          await loadContestants();
+        } else {
+          msg.className = 'message error';
+          msg.textContent = data.message || 'Failed to delete contestant';
+        }
+      } catch (err) {
+        const msg = document.getElementById('contestantMessage');
+        msg.className = 'message error';
+        msg.textContent = 'Server error while deleting contestant';
       }
     }
   </script>
@@ -939,47 +1348,152 @@ const contestantsContent = `
 
 // Questions page content
 const questionsContent = `
-  <h2>Questions</h2>
-  <form id="questionForm">
-    <div class="form-group">
-      <label for="questionText">Question Text</label>
-      <textarea id="questionText" rows="3" required placeholder="Enter your question here..."></textarea>
+  <div class="card">
+    <h3 style="margin-top:0"><i data-lucide="help-circle" style="vertical-align:text-bottom; margin-right:8px"></i> Create Question</h3>
+    <form id="questionForm">
+      <div class="form-group">
+        <label for="questionText">Question Text</label>
+        <textarea id="questionText" rows="3" required placeholder="Enter your question here..."></textarea>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label for="questionQuizCode">Quiz Code</label>
+          <input type="text" id="questionQuizCode" required placeholder="AI-ML-2025" />
+        </div>
+        <div class="form-group">
+          <label for="questionClass">Class</label>
+          <select id="questionClass" required>
+            <option value="">Select a class</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Options</label>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <input type="text" id="option1" placeholder="Option 1" required />
+          <input type="text" id="option2" placeholder="Option 2" required />
+          <input type="text" id="option3" placeholder="Option 3" required />
+          <input type="text" id="option4" placeholder="Option 4" required />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="correctAnswer">Correct Answer</label>
+        <select id="correctAnswer" required>
+          <option value="">Select correct answer</option>
+          <option value="option1" id="correctOption1">Option 1</option>
+          <option value="option2" id="correctOption2">Option 2</option>
+          <option value="option3" id="correctOption3">Option 3</option>
+          <option value="option4" id="correctOption4">Option 4</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-primary" style="width:100%"><i data-lucide="plus"></i> Add Question</button>
+      <div id="questionMessage" class="message" style="margin-top:16px"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0"><i data-lucide="list" style="vertical-align:text-bottom; margin-right:8px"></i> Question Bank</h3>
+    <div class="table-container">
+      <div id="questionList"></div>
     </div>
-    <div class="form-group">
-      <label for="questionQuizCode">Quiz Code</label>
-      <input type="text" id="questionQuizCode" required placeholder="e.g., AI-ML-2025" />
+  </div>
+
+  <div id="questionEditModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.7); z-index:9999; align-items:center; justify-content:center; padding:24px; backdrop-filter:blur(4px);">
+    <div class="card" style="width:100%; max-width:640px; margin:0;">
+      <h3 style="margin-top:0">Edit Question</h3>
+      <form id="questionEditForm">
+        <div class="form-group">
+          <label for="editQuestionText">Question Text</label>
+          <textarea id="editQuestionText" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="editQuestionQuizCode">Quiz Code</label>
+          <input type="text" id="editQuestionQuizCode" required />
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label for="editOption1">Option 1</label>
+            <input type="text" id="editOption1" required />
+          </div>
+          <div class="form-group">
+            <label for="editOption2">Option 2</label>
+            <input type="text" id="editOption2" required />
+          </div>
+          <div class="form-group">
+            <label for="editOption3">Option 3</label>
+            <input type="text" id="editOption3" required />
+          </div>
+          <div class="form-group">
+            <label for="editOption4">Option 4</label>
+            <input type="text" id="editOption4" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="editQuestionCorrectAnswer">Correct Answer</label>
+          <select id="editQuestionCorrectAnswer" required>
+            <option value="">Select correct answer</option>
+            <option value="option1" id="editCorrectOption1">Option 1</option>
+            <option value="option2" id="editCorrectOption2">Option 2</option>
+            <option value="option3" id="editCorrectOption3">Option 3</option>
+            <option value="option4" id="editCorrectOption4">Option 4</option>
+          </select>
+        </div>
+        <div style="display:flex; gap:12px; margin-top:24px;">
+          <button type="submit" class="btn-primary" style="flex:1"><i data-lucide="check"></i> Save Changes</button>
+          <button type="button" class="btn-outline" onclick="closeQuestionEditModal()">Cancel</button>
+        </div>
+      </form>
     </div>
-    <div class="form-group">
-      <label for="questionClass">Class</label>
-      <select id="questionClass" required>
-        <option value="">Select a class</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Options (4 required)</label>
-      <input type="text" id="option1" placeholder="Option 1" required />
-      <input type="text" id="option2" placeholder="Option 2" required />
-      <input type="text" id="option3" placeholder="Option 3" required />
-      <input type="text" id="option4" placeholder="Option 4" required />
-    </div>
-    <div class="form-group">
-      <label for="correctAnswer">Correct Answer</label>
-      <select id="correctAnswer" required>
-        <option value="">Select correct answer</option>
-        <option value="option1" id="correctOption1">Option 1</option>
-        <option value="option2" id="correctOption2">Option 2</option>
-        <option value="option3" id="correctOption3">Option 3</option>
-        <option value="option4" id="correctOption4">Option 4</option>
-      </select>
-    </div>
-    <button type="submit">Add Question</button>
-    <div id="questionMessage" class="message"></div>
-  </form>
-  <div id="questionList"></div>
+  </div>
 
   <script>
     async function loadPageData() {
-      // Load questions list if needed
+      await loadQuestions();
+      lucide.createIcons();
+    }
+
+    async function loadQuestions() {
+      const list = document.getElementById('questionList');
+      list.innerHTML = '<p>Loading questions...</p>';
+      try {
+        const res = await fetch('/api/quiz/question', { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok || data.status !== 'success') {
+          list.innerHTML = '<p>Failed to load questions.</p>';
+          return;
+        }
+        if (!data.questions || data.questions.length === 0) {
+          list.innerHTML = '<p>No questions found.</p>';
+          return;
+        }
+        list.innerHTML = \`
+          <table>
+            <thead>
+              <tr>
+                <th>Question</th>
+                <th>Class</th>
+                <th>Quiz Code</th>
+                <th>Correct Answer</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              \${data.questions.map(q => \`
+                <tr>
+                  <td>\${q.questionText || '-'}</td>
+                  <td>\${q.className || '-'}</td>
+                  <td>\${q.quizCode || '-'}</td>
+                  <td>\${q.correctAnswer || '-'}</td>
+                  <td style="display:flex; gap:8px;">
+                    <button type="button" onclick="openQuestionEditModal('\${q._id}', '\${(q.questionText || '').replace(/'/g, "\\\\'")}', '\${(q.quizCode || '').replace(/'/g, "\\\\'")}', \${JSON.stringify(q.options || []).replace(/"/g, '&quot;')}, '\${(q.correctAnswer || '').replace(/'/g, "\\\\'")}')">Edit</button>
+                    <button type="button" class="logout-btn" onclick="deleteQuestion('\${q._id}')">Delete</button>
+                  </td>
+                </tr>\`).join('')}
+            </tbody>
+          </table>\`;
+      } catch (err) {
+        list.innerHTML = '<p>Server error while loading questions.</p>';
+      }
     }
 
     function updateCorrectAnswerLabels() {
@@ -992,6 +1506,23 @@ const questionsContent = `
       const opt2 = document.getElementById('correctOption2');
       const opt3 = document.getElementById('correctOption3');
       const opt4 = document.getElementById('correctOption4');
+      
+      if (opt1) opt1.textContent = option1 || 'Option 1';
+      if (opt2) opt2.textContent = option2 || 'Option 2';
+      if (opt3) opt3.textContent = option3 || 'Option 3';
+      if (opt4) opt4.textContent = option4 || 'Option 4';
+    }
+
+    function updateEditCorrectAnswerLabels() {
+      const option1 = document.getElementById('editOption1')?.value.trim() || 'Option 1';
+      const option2 = document.getElementById('editOption2')?.value.trim() || 'Option 2';
+      const option3 = document.getElementById('editOption3')?.value.trim() || 'Option 3';
+      const option4 = document.getElementById('editOption4')?.value.trim() || 'Option 4';
+      
+      const opt1 = document.getElementById('editCorrectOption1');
+      const opt2 = document.getElementById('editCorrectOption2');
+      const opt3 = document.getElementById('editCorrectOption3');
+      const opt4 = document.getElementById('editCorrectOption4');
       
       if (opt1) opt1.textContent = option1 || 'Option 1';
       if (opt2) opt2.textContent = option2 || 'Option 2';
@@ -1064,6 +1595,7 @@ const questionsContent = `
           document.getElementById('option3').value = '';
           document.getElementById('option4').value = '';
           document.getElementById('correctAnswer').value = '';
+          await loadQuestions();
         } else {
           msg.className = 'message error';
           msg.textContent = data.message || data.error || 'Failed to add question. Status: ' + res.status;
@@ -1075,29 +1607,142 @@ const questionsContent = `
         console.error('Request error:', err);
       }
     }
+
+    let editingQuestionId = null;
+
+    function openQuestionEditModal(id, questionText, quizCode, options, correctAnswer) {
+      editingQuestionId = id;
+      const parsedOptions = Array.isArray(options) ? options : ['', '', '', ''];
+      document.getElementById('editQuestionText').value = questionText || '';
+      document.getElementById('editQuestionQuizCode').value = quizCode || '';
+      document.getElementById('editOption1').value = parsedOptions[0] || '';
+      document.getElementById('editOption2').value = parsedOptions[1] || '';
+      document.getElementById('editOption3').value = parsedOptions[2] || '';
+      document.getElementById('editOption4').value = parsedOptions[3] || '';
+      
+      updateEditCorrectAnswerLabels();
+
+      // Find which option matches the correctAnswer and set the dropdown
+      const select = document.getElementById('editQuestionCorrectAnswer');
+      select.value = ""; 
+      for (let i = 0; i < parsedOptions.length; i++) {
+        if (parsedOptions[i] === correctAnswer) {
+          select.value = "option" + (i + 1);
+          break;
+        }
+      }
+
+      document.getElementById('questionEditModal').style.display = 'flex';
+    }
+
+    function closeQuestionEditModal() {
+      editingQuestionId = null;
+      document.getElementById('questionEditModal').style.display = 'none';
+    }
+
+    async function submitQuestionEdit(e) {
+      e.preventDefault();
+      if (!editingQuestionId) return;
+      const updatedQuestion = document.getElementById('editQuestionText').value.trim();
+      const updatedQuizCode = document.getElementById('editQuestionQuizCode').value.trim();
+      const o1 = document.getElementById('editOption1').value.trim();
+      const o2 = document.getElementById('editOption2').value.trim();
+      const o3 = document.getElementById('editOption3').value.trim();
+      const o4 = document.getElementById('editOption4').value.trim();
+      const correctAnswerIndex = document.getElementById('editQuestionCorrectAnswer').value;
+      
+      if (!correctAnswerIndex) {
+        alert('Please select a correct answer');
+        return;
+      }
+      
+      const options = [o1, o2, o3, o4];
+      const optionIndex = parseInt(correctAnswerIndex.replace('option', '')) - 1;
+      const updatedCorrect = options[optionIndex];
+
+      try {
+        const res = await fetch('/api/quiz/question/' + editingQuestionId, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            questionText: updatedQuestion.trim(),
+            quizCode: updatedQuizCode.trim(),
+            options: [o1.trim(), o2.trim(), o3.trim(), o4.trim()],
+            correctAnswer: updatedCorrect.trim()
+          })
+        });
+        const data = await res.json();
+        const msg = document.getElementById('questionMessage');
+        if (res.ok && data.status === 'success') {
+          msg.className = 'message success';
+          msg.textContent = 'Question updated successfully';
+          closeQuestionEditModal();
+          await loadQuestions();
+        } else {
+          msg.className = 'message error';
+          msg.textContent = data.message || 'Failed to update question';
+        }
+      } catch (err) {
+        const msg = document.getElementById('questionMessage');
+        msg.className = 'message error';
+        msg.textContent = 'Server error while updating question';
+      }
+    }
+
+    document.getElementById('questionEditForm').addEventListener('submit', submitQuestionEdit);
+    document.getElementById('editOption1').addEventListener('input', updateEditCorrectAnswerLabels);
+    document.getElementById('editOption2').addEventListener('input', updateEditCorrectAnswerLabels);
+    document.getElementById('editOption3').addEventListener('input', updateEditCorrectAnswerLabels);
+    document.getElementById('editOption4').addEventListener('input', updateEditCorrectAnswerLabels);
+
+    async function deleteQuestion(id) {
+      if (!confirm('Delete this question?')) return;
+      try {
+        const res = await fetch('/api/quiz/question/' + id, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        const data = await res.json();
+        const msg = document.getElementById('questionMessage');
+        if (res.ok && data.status === 'success') {
+          msg.className = 'message success';
+          msg.textContent = 'Question deleted successfully';
+          await loadQuestions();
+        } else {
+          msg.className = 'message error';
+          msg.textContent = data.message || 'Failed to delete question';
+        }
+      } catch (err) {
+        const msg = document.getElementById('questionMessage');
+        msg.className = 'message error';
+        msg.textContent = 'Server error while deleting question';
+      }
+    }
   </script>
 `;
 
 // Results page content
 const resultsContent = `
-  <h2>Results</h2>
-  <div id="resultsMessage" class="message"></div>
-  <div id="resultsContainer" style="overflow-x: auto;">
-    <table id="resultsTable" style="width: 100%; border-collapse: collapse;">
-      <thead>
-        <tr style="text-align: left;">
-          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Name</th>
-          <th style="padding: 8px; border-bottom: 1px solid #ddd;">USN</th>
-          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Class</th>
-          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Score</th>
-          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Submitted At</th>
-          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="resultsBody">
-        <tr><td colspan="6" style="padding: 12px;">Loading...</td></tr>
-      </tbody>
-    </table>
+  <div class="card">
+    <div id="resultsMessage" class="message"></div>
+    <div class="table-container">
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>USN</th>
+            <th>Class</th>
+            <th>Score</th>
+            <th>Submitted At</th>
+            <th style="text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody">
+          <tr><td colspan="6" style="padding: 24px; text-align:center; color:var(--text-muted)">Loading results...</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -1105,44 +1750,45 @@ const resultsContent = `
       const msg = document.getElementById('resultsMessage');
       const body = document.getElementById('resultsBody');
       msg.textContent = '';
-      body.innerHTML = '<tr><td colspan="5" style="padding: 12px;">Loading...</td></tr>';
-
+      
       try {
         const res = await fetch('/admin/results/data', { credentials: 'include' });
-        let data;
-        try {
-          data = await res.json();
-        } catch (err) {
-          msg.className = 'message error';
-          msg.textContent = 'Invalid server response.';
-          return;
-        }
+        const data = await res.json();
 
         if (!res.ok || data.status !== 'success') {
           msg.className = 'message error';
           msg.textContent = data.message || 'Failed to load results';
-          body.innerHTML = '<tr><td colspan="5" style="padding: 12px;">No data</td></tr>';
+          body.innerHTML = '<tr><td colspan="6" style="padding: 24px; text-align:center">No data available</td></tr>';
           return;
         }
 
         if (!data.results || data.results.length === 0) {
-          body.innerHTML = '<tr><td colspan="6" style="padding: 12px;">No results yet</td></tr>';
+          body.innerHTML = '<tr><td colspan="6" style="padding: 24px; text-align:center; color:var(--text-muted)">No results found</td></tr>';
           return;
         }
 
         body.innerHTML = data.results.map(r => {
           const date = new Date(r.submittedAt || r.createdAt || r._id).toLocaleString();
           return \`<tr data-id="\${r._id}">
-            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${r.name || '-'}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${r.usn || '-'}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${r.className || '-'}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${r.score ?? '-'}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${date}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">
-              <button class="delete-result-btn" data-id="\${r._id}" style="background:#dc3545; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; pointer-events:auto; position:relative; z-index:1;">Delete</button>
+            <td style="font-weight:600">\${r.name || '-'}</td>
+            <td><code>\${r.usn || '-'}</code></td>
+            <td>\${r.className || '-'}</td>
+            <td><span style="font-weight:800; color:var(--primary)">\${r.score ?? '-'}</span></td>
+            <td style="color:var(--text-muted); font-size:13px">\${date}</td>
+            <td style="text-align:right">
+              <button class="btn-danger delete-result-btn" data-id="\${r._id}" style="padding:6px 10px; font-size:12px">
+                <i data-lucide="trash-2"></i> Delete
+              </button>
             </td>
           </tr>\`;
         }).join('');
+
+        lucide.createIcons();
+        attachDeleteListeners();
+      } catch (err) {
+        body.innerHTML = '<tr><td colspan="6" style="padding: 24px; text-align:center; color:var(--error)">Error loading results</td></tr>';
+      }
+    }
 
         document.querySelectorAll('.delete-result-btn').forEach(btn => {
           btn.addEventListener('click', async (e) => {
@@ -1224,29 +1870,274 @@ const resultsContent = `
   </script>
 `;
 
+// ── Recordings page ──────────────────────────────────────────────────────────
+const recordingsContent = `
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+      <div style="flex:1; min-width:300px; position:relative">
+        <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; color:var(--text-muted)"></i>
+        <input id="recFilter" type="text" placeholder="Search by USN, Name or Quiz Code..." style="padding-left:36px" />
+      </div>
+      <button onclick="loadPageData()" class="btn-outline"><i data-lucide="refresh-cw"></i> Refresh</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="recMessage" class="message"></div>
+    <div class="table-container">
+      <table id="recTable">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>USN</th>
+            <th>Quiz</th>
+            <th>Recorded At</th>
+            <th>Size</th>
+            <th>Score</th>
+            <th>Status</th>
+            <th style="text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="recBody">
+          <tr><td colspan="8" style="padding:32px; text-align:center">Loading proctor logs...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="playerModal" style="position:fixed; inset:0; background:rgba(15,23,42,0.9); z-index:9999; display:none; flex-direction:column; align-items:center; justify-content:center; padding:24px; backdrop-filter:blur(8px);">
+    <div style="background:#1e293b; border-radius:var(--radius-lg); padding:24px; max-width:960px; width:100%; position:relative; box-shadow:var(--shadow-lg);">
+      <button onclick="closePlayer()" style="position:absolute; top:-16px; right:-16px; background:var(--error); color:white; border:none; border-radius:50%; width:40px; height:40px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-md)">
+        <i data-lucide="x"></i>
+      </button>
+      <h3 id="playerTitle" style="color:white; margin:0 0 20px; display:flex; align-items:center; gap:10px"></h3>
+      <video id="proctorPlayer" controls playsinline style="width:100%; border-radius:var(--radius); background:black; max-height:70vh;"></video>
+      <div id="playerMeta" style="margin-top:16px; color:#94a3b8; font-size:14px; display:flex; justify-content:space-between; align-items:center;"></div>
+    </div>
+  </div>
+
+  <div id="malpModal" style="position:fixed; inset:0; background:rgba(15,23,42,0.8); z-index:10000; display:none; flex-direction:column; align-items:center; justify-content:center; padding:24px; backdrop-filter:blur(4px);">
+    <div class="card" style="width:100%; max-width:600px; margin:0; max-height:85vh; overflow-y:auto">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px">
+        <h3 style="margin:0"><i data-lucide="alert-triangle" style="color:var(--error); vertical-align:middle"></i> Malpractice Log</h3>
+        <button onclick="closeMalpModal()" class="btn-outline" style="padding:6px; border-radius:50%"><i data-lucide="x"></i></button>
+      </div>
+      <div id="malpList" style="display:flex; flex-direction:column; gap:12px;"></div>
+      <div id="malpEmpty" style="display:none; text-align:center; padding:48px; color:var(--text-muted);">No incidents recorded.</div>
+    </div>
+  </div>
+
+  <style>
+    .malp-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700; }
+    .malp-yes { background:#fef2f2; color:var(--error); border:1px solid #fee2e2; }
+    .malp-no  { background:#ecfdf5; color:var(--success); border:1px solid #d1fae5; }
+  </style>
+
+  <script>
+    let allRecordings = [];
+    async function loadPageData() {
+      const body = document.getElementById('recBody');
+      const msg  = document.getElementById('recMessage');
+      msg.textContent = '';
+      try {
+        const res  = await fetch('/api/proctor/list', { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed');
+        allRecordings = data.recordings || [];
+        renderTable(allRecordings);
+      } catch (err) {
+        body.innerHTML = '<tr><td colspan="8" style="padding:32px; text-align:center; color:var(--error)">Error loading logs</td></tr>';
+      }
+      lucide.createIcons();
+    }
+
+  <script>
+    let allRecordings = [];
+
+    async function loadPageData() {
+      const body = document.getElementById('recBody');
+      const msg  = document.getElementById('recMessage');
+      msg.textContent = '';
+      body.innerHTML  = '<tr><td colspan="9" style="padding:16px;">Loading…</td></tr>';
+      try {
+        const res  = await fetch('/api/proctor/list', { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok || data.status !== 'success') throw new Error(data.message || 'Failed');
+        allRecordings = data.recordings || [];
+        renderTable(allRecordings);
+      } catch (err) {
+        msg.className   = 'message error';
+        msg.textContent = 'Error loading recordings: ' + err.message;
+        body.innerHTML  = '<tr><td colspan="9" style="padding:16px;">Failed to load</td></tr>';
+      }
+    }
+
+    function renderTable(rows) {
+      const body = document.getElementById('recBody');
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:#64748b;">No recordings found yet. Recordings appear here after students attempt a quiz.</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map(r => {
+        const dt     = new Date(r.recordedAt).toLocaleString();
+        const malp   = r.malpracticeDetected
+          ? \`<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
+               <span class="malp-badge malp-yes">⚠️ \${r.malpracticeCount} event\${r.malpracticeCount !== 1 ? 's' : ''}</span>
+               <button class="rec-action-btn" style="background:#fef2f2;color:#991b1b;border:1px solid #fee2e2;padding:2px 6px;font-size:10px;margin-top:2px;" 
+                       onclick="viewMalp('\${r.filename}')">🔍 Details</button>
+             </div>\`
+          : '<span class="malp-badge malp-no">✓ Clean</span>';
+        const score  = r.quizScore !== null ? r.quizScore : '—';
+        return \`<tr>
+          <td>\${r.contestantName || '—'}</td>
+          <td><code>\${r.contestantId}</code></td>
+          <td><code>\${r.quizId}</code></td>
+          <td>\${r.className}</td>
+          <td style="white-space:nowrap;">\${dt}</td>
+          <td>\${r.sizeMB} MB</td>
+          <td>\${score}</td>
+          <td>\${malp}</td>
+          <td style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="rec-action-btn btn-play" onclick="openPlayer('\${r.filename}', '\${(r.contestantName || '—').replace(/'/g, "\\\\'")}')">▶ Play</button>
+            <a href="/api/proctor/download/\${encodeURIComponent(r.filename)}" download class="rec-action-btn btn-dl" style="text-decoration:none;display:inline-block;">⬇ Save</a>
+            <button class="rec-action-btn btn-del" onclick="deleteRec('\${r.filename}')">🗑 Delete</button>
+          </td>
+        </tr>\`;
+      }).join('');
+    }
+
+    // Live filter
+    document.getElementById('recFilter').addEventListener('input', function() {
+      const q = this.value.toLowerCase();
+      const filtered = allRecordings.filter(r =>
+        (r.contestantId || '').toLowerCase().includes(q) ||
+        (r.contestantName || '').toLowerCase().includes(q) ||
+        (r.quizId || '').toLowerCase().includes(q)
+      );
+      renderTable(filtered);
+    });
+
+    function openPlayer(filename, title) {
+      const modal = document.getElementById('playerModal');
+      const video = document.getElementById('proctorPlayer');
+      const tEl   = document.getElementById('playerTitle');
+      const meta  = document.getElementById('playerMeta');
+      tEl.textContent = '📹 ' + title;
+      video.src       = '/api/proctor/stream/' + encodeURIComponent(filename);
+      meta.innerHTML  = \`File: <code>\${filename}</code> &nbsp;|&nbsp; <a href="/api/proctor/download/\${encodeURIComponent(filename)}" download style="color:#60a5fa;">⬇ Download</a>\`;
+      modal.style.display = 'flex';
+      modal.classList.add('open');
+      video.play().catch(() => {});
+    }
+
+    function closePlayer() {
+      const modal = document.getElementById('playerModal');
+      const video = document.getElementById('proctorPlayer');
+      video.pause();
+      video.src = '';
+      modal.style.display = 'none';
+      modal.classList.remove('open');
+    }
+
+    // Close on backdrop click
+    document.getElementById('playerModal').addEventListener('click', function(e) {
+      if (e.target === this) closePlayer();
+    });
+    document.getElementById('malpModal').addEventListener('click', function(e) {
+      if (e.target === this) closeMalpModal();
+    });
+
+    function viewMalp(filename) {
+      const rec = allRecordings.find(r => r.filename === filename);
+      if (!rec) return;
+      
+      const modal = document.getElementById('malpModal');
+      const list  = document.getElementById('malpList');
+      const empty = document.getElementById('malpEmpty');
+      
+      list.innerHTML = '';
+      const events = rec.malpracticeEvents || [];
+      
+      if (events.length === 0) {
+        empty.style.display = 'block';
+      } else {
+        empty.style.display = 'none';
+        list.innerHTML = events.map(ev => {
+          const time = new Date(ev.timestamp).toLocaleTimeString();
+          const isHigh = ev.severity === 'high' || ev.type === 'multiple_faces' || ev.type === 'no_face_detected';
+          const color = isHigh ? '#ef4444' : '#f59e0b';
+          const bg    = isHigh ? '#fef2f2' : '#fffbeb';
+          
+          return \`<div style="background:\${bg};border-left:4px solid \${color};padding:12px;border-radius:8px;">
+            <div style="display:flex;justify-content:between;align-items:center;margin-bottom:4px;">
+              <strong style="color:\${color};font-size:13px;text-transform:uppercase;">\${ev.type.replace(/_/g, ' ')}</strong>
+              <span style="margin-left:auto;font-size:11px;color:#64748b;">\${time}</span>
+            </div>
+            <p style="margin:0;font-size:13px;color:#334155;line-height:1.4;">\${ev.description || 'No description available.'}</p>
+            \${ev.faceCount !== undefined ? \`<div style="margin-top:6px;font-size:11px;color:#475569;font-weight:600;">Faces detected: \${ev.faceCount}</div>\` : ''}
+          </div>\`;
+        }).join('');
+      }
+      
+      modal.style.display = 'flex';
+    }
+
+    function closeMalpModal() {
+      document.getElementById('malpModal').style.display = 'none';
+    }
+
+    async function deleteRec(filename) {
+      if (!confirm('Delete this recording permanently? This cannot be undone.')) return;
+      const msg = document.getElementById('recMessage');
+      try {
+        const res  = await fetch('/api/proctor/recording/' + encodeURIComponent(filename), {
+          method: 'DELETE', credentials: 'include'
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          msg.className   = 'message success';
+          msg.textContent = 'Recording deleted.';
+          await loadPageData();
+        } else {
+          throw new Error(data.message || 'Delete failed');
+        }
+      } catch (err) {
+        msg.className   = 'message error';
+        msg.textContent = 'Error: ' + err.message;
+      }
+    }
+  <\/script>
+`;
+
 // Classes management page (superadmin only)
 const classesContent = `
-  <h2>Classes</h2>
-  <div id="classesMessage" class="message"></div>
-  <form id="addClassForm" style="margin-bottom: 20px;">
-    <div class="form-group">
-      <label for="newClassName">Class Name</label>
-      <input type="text" id="newClassName" placeholder="e.g., BCA-IV" required />
+  <div class="card">
+    <h3 style="margin-top:0"><i data-lucide="plus-circle" style="vertical-align:text-bottom; margin-right:8px"></i> Add New Class</h3>
+    <form id="addClassForm">
+      <div class="form-group">
+        <label for="newClassName">Class Name</label>
+        <input type="text" id="newClassName" placeholder="e.g., BCA-IV" required />
+      </div>
+      <button type="submit" class="btn-primary" style="width:100%"><i data-lucide="save"></i> Create Class</button>
+    </form>
+    <div id="classesMessage" class="message" style="margin-top:16px"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0"><i data-lucide="book-open" style="vertical-align:text-bottom; margin-right:8px"></i> Existing Classes</h3>
+    <div class="table-container">
+      <table id="classesTable">
+        <thead>
+          <tr>
+            <th>Class Name</th>
+            <th style="text-align:right">Actions & Configuration</th>
+          </tr>
+        </thead>
+        <tbody id="classesTableBody">
+          <tr><td colspan="2" style="padding:24px; text-align:center">Loading classes...</td></tr>
+        </tbody>
+      </table>
     </div>
-    <button type="submit">Add Class</button>
-  </form>
-  <div id="classesListContainer">
-    <table style="width:100%; border-collapse: collapse;">
-      <thead>
-        <tr style="text-align:left;">
-          <th style="padding:8px; border-bottom:1px solid #ddd;">Class Name</th>
-          <th style="padding:8px; border-bottom:1px solid #ddd;">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="classesTableBody">
-        <tr><td colspan="2" style="padding: 12px;">Loading...</td></tr>
-      </tbody>
-    </table>
   </div>
 
   <script>
@@ -1254,6 +2145,7 @@ const classesContent = `
       await refreshClassesTable();
       const form = document.getElementById('addClassForm');
       if (form) form.addEventListener('submit', addClassHandler);
+      lucide.createIcons();
     }
 
     async function refreshClassesTable() {
@@ -1421,26 +2313,27 @@ const classesContent = `
 
 // Add Admin page content
 const addAdminContent = `
-  <div style="margin-bottom: 20px;">
-    <a href="/admin/overview" style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 4px; margin-bottom: 10px; display: inline-block;">← Back to Overview</a>
+  <div class="card" style="max-width:600px; margin: 0 auto;">
+    <h3 style="margin-top:0"><i data-lucide="user-plus" style="vertical-align:text-bottom; margin-right:8px"></i> Add New Admin</h3>
+    <p style="color:var(--text-muted); font-size:14px; margin-bottom:24px">Create a sub-admin and assign them to specific classes.</p>
+    
+    <form id="addAdminForm">
+      <div class="form-group">
+        <label for="newAdminUsername">Username</label>
+        <input type="text" id="newAdminUsername" placeholder="Enter username" required />
+      </div>
+      <div class="form-group">
+        <label for="newAdminPassword">Password</label>
+        <input type="password" id="newAdminPassword" placeholder="Set secure password" required />
+      </div>
+      <div class="form-group">
+        <label>Managed Classes</label>
+        <div id="classCheckboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; border:1px solid var(--border); border-radius:var(--radius); background:#fcfcfd; max-height:150px; overflow-y:auto;"></div>
+      </div>
+      <button type="submit" class="btn-primary" style="width:100%; margin-top:12px"><i data-lucide="user-plus"></i> Create Admin Account</button>
+      <div id="addAdminMessage" class="message" style="margin-top:16px"></div>
+    </form>
   </div>
-  <h2>Add New Admin</h2>
-  <form id="addAdminForm">
-    <div class="form-group">
-      <label for="newAdminUsername">Username</label>
-      <input type="text" id="newAdminUsername" required />
-    </div>
-    <div class="form-group">
-      <label for="newAdminPassword">Password</label>
-      <input type="password" id="newAdminPassword" required />
-    </div>
-    <div class="form-group">
-      <label>Classes (select one or more)</label>
-      <div id="classCheckboxes" style="display: flex; gap: 16px; flex-wrap: nowrap; overflow-x: auto; padding: 4px 0;"></div>
-    </div>
-    <button type="submit">Add Admin</button>
-    <div id="addAdminMessage" class="message"></div>
-  </form>
 
   <script>
     async function loadPageData() {
@@ -1448,6 +2341,7 @@ const addAdminContent = `
       if (addAdminForm) {
         addAdminForm.addEventListener('submit', addAdminHandler);
       }
+      lucide.createIcons();
     }
 
     async function addAdminHandler(e) {
@@ -1522,6 +2416,10 @@ app.get("/admin/questions", requireAdmin, (req, res) => {
 
 app.get("/admin/results", requireAdmin, (req, res) => {
   res.send(generateAdminPage(resultsContent, 'results'));
+});
+
+app.get("/admin/recordings", requireAdmin, (req, res) => {
+  res.send(generateAdminPage(recordingsContent, 'recordings'));
 });
 
 app.get("/admin/classes", requireAdmin, (req, res) => {
@@ -1736,7 +2634,7 @@ const publicPath = path.join(__dirname, "..", "frontend", "public");
 app.use(express.static(publicPath));
 
 // Clean connection without deprecated options
-mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/quiz-app")
+mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/quiz")
   .then(() => {
     console.log("✓ Connected to MongoDB successfully");
     
