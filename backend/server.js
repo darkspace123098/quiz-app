@@ -974,7 +974,7 @@ function generateAdminPage(content, activeTab = 'overview') {
         if (!sel) return;
         const currentVal = sel.value;
         sel.innerHTML = '<option value="">Select a class</option>' + 
-          classList.map(c => `<option value="${c.className}">${c.className}</option>`).join('');
+          classList.map(c => \`\<option value="\${c.className}"\>\${c.className}\</option\>\`).join('');
         sel.value = currentVal;
       });
     }
@@ -1088,29 +1088,6 @@ const overviewContent = `
       <div class="stat-label">Total Results</div>
       <p class="stat-value" id="totalResults">0</p>
     </div>
-// Overview page content
-const overviewContent = `
-  <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-icon"><i data-lucide="book-open"></i></div>
-      <div class="stat-label">Total Classes</div>
-      <p class="stat-value" id="totalClasses">0</p>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon"><i data-lucide="users"></i></div>
-      <div class="stat-label">Total Contestants</div>
-      <p class="stat-value" id="totalContestants">0</p>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon"><i data-lucide="help-circle"></i></div>
-      <div class="stat-label">Total Questions</div>
-      <p class="stat-value" id="totalQuestions">0</p>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon"><i data-lucide="bar-chart-3"></i></div>
-      <div class="stat-label">Total Results</div>
-      <p class="stat-value" id="totalResults">0</p>
-    </div>
   </div>
 
   <div class="card">
@@ -1136,7 +1113,7 @@ const overviewContent = `
       lucide.createIcons();
     }
   </script>
-// Contestants page content
+`;
 const contestantsContent = `
   <div class="card">
     <h3 style="margin-top:0"><i data-lucide="user-plus" style="vertical-align:text-bottom; margin-right:8px"></i> Add Contestant</h3>
