@@ -15,7 +15,8 @@ import {
   questionsContent,
   resultsContent,
   classesContent,
-  addAdminContent
+  addAdminContent,
+  recordingsContent
 } from "../views/adminPages.js";
 
 const router = express.Router();
@@ -231,6 +232,10 @@ router.get("/questions", requireAdmin, (req, res) => {
 
 router.get("/results", requireAdmin, (req, res) => {
   res.send(generateAdminPage(resultsContent, 'results'));
+});
+
+router.get("/recordings", requireAdmin, (req, res) => {
+  res.send(generateAdminPage(recordingsContent, 'recordings'));
 });
 
 router.get("/classes", requireAdmin, (req, res) => {

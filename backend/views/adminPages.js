@@ -4,147 +4,262 @@ export const adminLoginPage = `
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Admin Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login | Quiz Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #4f46e5;
-      --primary-light: #6366f1;
-      --bg: #f8fafc;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --bg: #f0f2f5;
       --card: #ffffff;
-      --text: #1e293b;
-      --muted: #64748b;
+      --text: #0f172a;
+      --muted: #475569;
       --error: #ef4444;
+      --success: #10b981;
+      --border: #d1d5db;
+      --input-bg: #f8fafc;
+      --input-focus-bg: #ffffff;
     }
+    
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --card: rgba(30, 41, 59, 0.85);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: rgba(255, 255, 255, 0.1);
+      --input-bg: rgba(15, 23, 42, 0.6);
+      --input-focus-bg: rgba(15, 23, 42, 0.8);
+    }
+
     * { box-sizing: border-box; }
     body {
-      font-family: "Inter", "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+      font-family: "Plus Jakarta Sans", sans-serif;
+      background: var(--bg);
+      background-image: radial-gradient(ellipse at top left, #e0e7ff 0%, var(--bg) 50%, #f0f2f5 100%);
       margin: 0;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       color: var(--text);
-      padding: 16px;
+      padding: 20px;
+      transition: background 0.4s ease, color 0.3s ease;
     }
-    .login-card {
+
+    [data-theme="dark"] body {
+      background-image: radial-gradient(circle at top left, #1e293b 0%, #0f172a 100%);
+    }
+
+    .theme-toggle {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
       background: var(--card);
-      border: 1px solid rgba(0,0,0,0.08);
-      border-radius: 18px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-      padding: 32px;
-      width: 100%;
-      max-width: 420px;
-    }
-    .brand {
+      border: 1px solid var(--border);
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 8px;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text);
+      transition: all 0.2s;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+    .theme-toggle:hover {
+      transform: scale(1.05);
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+      padding: 40px;
+      width: 100%;
+      max-width: 440px;
+      backdrop-filter: blur(10px);
+      position: relative;
+    }
+    [data-theme="dark"] .login-card {
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-bottom: 32px;
     }
     .brand-badge {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, var(--primary), #a855f7);
       display: grid;
       place-items: center;
-      font-weight: 700;
+      font-weight: 800;
+      font-size: 24px;
       color: white;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4);
     }
     h2 {
-      margin: 0 0 4px 0;
+      margin: 0;
+      font-size: 28px;
+      font-weight: 800;
       color: var(--text);
-      font-size: 24px;
     }
+    [data-theme="dark"] h2 {
+      background: linear-gradient(to right, #fff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
     p.subtitle {
-      margin: 0 0 18px 0;
+      margin: 8px 0 0 0;
       color: var(--muted);
-      font-size: 14px;
+      font-size: 15px;
+    }
+    .form-group {
+      margin-bottom: 20px;
     }
     label {
       display: block;
-      margin-top: 14px;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       font-weight: 600;
-      color: var(--text);
+      color: var(--muted);
       font-size: 14px;
     }
     input {
       width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #e2e8f0;
-      background: #ffffff;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
       color: var(--text);
-      font-size: 15px;
-      transition: border-color 0.15s, box-shadow 0.15s;
+      font-family: inherit;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+    input::placeholder {
+      color: var(--muted);
+      opacity: 0.6;
     }
     input:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+      background: var(--input-focus-bg);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
     }
-    button {
+
+    .btn-submit {
       width: 100%;
-      padding: 12px;
-      margin-top: 22px;
+      padding: 14px;
+      margin-top: 12px;
       border: none;
-      border-radius: 10px;
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
-      color: #ffffff;
-      font-size: 15px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: white;
+      font-size: 16px;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(79,70,229,0.3);
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      transition: all 0.2s;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
-    button:hover {
+    .btn-submit:hover {
+      background: var(--primary-hover);
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(79,70,229,0.4);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+    }
+    .btn-submit:active {
+      transform: translateY(0);
     }
     .message {
-      margin-top: 14px;
+      margin-top: 20px;
       text-align: center;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: 500;
       color: var(--error);
-      min-height: 18px;
+      min-height: 20px;
     }
     @media (max-width: 480px) {
       .login-card {
-        padding: 24px;
+        padding: 30px 24px;
       }
-      h2 { font-size: 20px; }
+      h2 { font-size: 24px; }
     }
   </style>
 </head>
 <body>
+  <div class="theme-toggle" id="themeToggle" title="Toggle Theme">
+    <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+  </div>
+
   <div class="login-card">
     <div class="brand">
       <div class="brand-badge">QA</div>
-      <div>
-        <h2>Admin Login</h2>
-        <p class="subtitle">Secure access to quiz control panel</p>
-      </div>
+      <h2>Admin Portal</h2>
+      <p class="subtitle">Enter your credentials to manage quizzes</p>
     </div>
     <form id="loginForm">
-      <label for="username">Username</label>
-      <input type="text" id="username" required />
-      <label for="password">Password</label>
-      <input type="password" id="password" required />
-      <button type="submit">Login</button>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="Enter admin username" required />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" required />
+      </div>
+      <button type="submit" class="btn-submit">Sign In</button>
       <div id="loginMessage" class="message"></div>
     </form>
   </div>
 
   <script>
+    // Theme Switcher Logic
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const html = document.documentElement;
+
+    const sunIcon = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';
+    const moonIcon = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>';
+
+    function setTheme(theme) {
+      html.setAttribute('data-theme', theme);
+      localStorage.setItem('admin-theme', theme);
+      themeIcon.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
+    }
+
+    // Initialize theme
+    const savedTheme = localStorage.getItem('admin-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    setTheme(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = html.getAttribute('data-theme');
+      setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+    });
+
+    // Login Form Logic
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value;
       const msg = document.getElementById("loginMessage");
+      const btn = e.target.querySelector('.btn-submit');
+      
       msg.textContent = "";
+      btn.disabled = true;
+      btn.textContent = "Authenticating...";
 
       try {
         const res = await fetch("/admin/login", {
@@ -157,9 +272,13 @@ export const adminLoginPage = `
         } else {
           const data = await res.json();
           msg.textContent = data.message || "Invalid credentials.";
+          btn.disabled = false;
+          btn.textContent = "Sign In";
         }
       } catch (err) {
-        msg.textContent = "Server error. Please try again.";
+        msg.textContent = "Server connection error.";
+        btn.disabled = false;
+        btn.textContent = "Sign In";
       }
     });
   </script>
@@ -202,267 +321,467 @@ function getEventListenersScript(activeTab) {
 
 export function generateAdminPage(content, activeTab = 'overview') {
   return `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Admin Panel</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel | Quiz Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     :root {
-      --primary: #4f46e5;
-      --primary-dark: #4338ca;
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --primary-light: #818cf8;
+      --sidebar-width: 280px;
+      --header-height: 72px;
       --bg: #f8fafc;
-      --panel: #ffffff;
-      --card: #ffffff;
+      --surface: #ffffff;
+      --surface-hover: #f1f5f9;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
       --border: #e2e8f0;
-      --text: #1e293b;
-      --muted: #64748b;
-      --success: #22c55e;
-      --error: #ef4444;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+      --sidebar-bg: #0f172a;
     }
+
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-hover: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: rgba(255,255,255,0.1);
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+    }
+
     * { box-sizing: border-box; }
+    
     body {
-      font-family: "Inter", "Segoe UI", sans-serif;
+      font-family: "Plus Jakarta Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
       margin: 0;
-      background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
-      color: var(--text);
+      display: flex;
       min-height: 100vh;
-      padding: 20px;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s ease, color 0.3s ease;
     }
-    .container { max-width: 1220px; margin: 0 auto; }
-    .header {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 24px;
-    }
-    .header h1 { margin: 0; color: var(--text); font-size: 24px; }
-    .nav-links {
-      display: flex;
-      gap: 10px;
-      margin: 0 0 24px 0;
-      flex-wrap: wrap;
-    }
-    .nav-link {
-      padding: 10px 16px;
-      background: #ffffff;
-      color: var(--text);
-      text-decoration: none;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      transition: background 0.15s, border-color 0.15s, transform 0.1s;
-    }
-    .nav-link:hover { background: #f1f5f9; border-color: var(--primary); }
-    .nav-link.active { background: var(--primary); border-color: var(--primary); color: #fff; }
-    h2 {
-      margin: 0 0 24px 0;
-      color: var(--text);
-      font-size: 22px;
-      font-weight: 700;
-    }
-    h3 {
-      margin: 0 0 16px 0;
-      color: var(--text);
-      font-size: 18px;
-      font-weight: 600;
-    }
-    h4 {
-      margin: 0 0 12px 0;
-      color: var(--text);
-      font-size: 16px;
-      font-weight: 600;
-    }
-    form {
-      margin-bottom: 24px;
-      padding: 20px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    .form-group { margin-bottom: 20px; }
-    label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text); }
-    input, textarea, select {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: #ffffff;
-      color: var(--text);
-      font-size: 14px;
-    }
-    input:focus, textarea:focus, select:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
-    }
-    button {
-      padding: 12px 20px;
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+
+    /* Sidebar Styles */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
       color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 14px;
-      transition: transform 0.1s, box-shadow 0.1s;
-      margin-top: 8px;
-    }
-    button:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(79,70,229,0.3); }
-    .message { margin: 16px 0; padding: 12px 16px; border-radius: 8px; }
-    .success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-    .error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-    .stat-grid { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); 
-      gap: 20px; 
-      margin-bottom: 24px;
-    }
-    .stat-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .stat-card h3 { margin: 0 0 12px 0; color: var(--muted); font-size: 14px; letter-spacing: 0.2px; }
-    .stat-card p { font-size: 32px; font-weight: 700; margin: 0; color: var(--primary); }
-    .superadmin-only { display: none; }
-    .superadmin-only.show { display: block; }
-    .logout-btn { background: #dc3545; }
-    .logout-btn:hover { background: #c82333; }
-    #adminUsername { color: var(--muted); font-size: 14px; margin-right: 12px; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--card);
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      margin-bottom: 24px;
-    }
-    table thead {
-      background: #f8fafc;
-    }
-    table th {
-      padding: 14px 16px;
-      text-align: left;
-      font-weight: 600;
-      color: var(--text);
-      border-bottom: 2px solid var(--border);
-      font-size: 14px;
-    }
-    table td {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
-      font-size: 14px;
-    }
-    table tbody tr:last-child td {
-      border-bottom: none;
-    }
-    table tbody tr:hover {
-      background: #f8fafc;
-    }
-    .content-section {
-      margin-bottom: 32px;
-    }
-    .btn-edit {
-      background: #17a2b8;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      margin-right: 6px;
-    }
-    .btn-edit:hover {
-      background: #138496;
-    }
-    .btn-delete {
-      background: #dc3545;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-    }
-    .btn-delete:hover {
-      background: #c82333;
-    }
-    .modal {
-      display: none;
+      height: 100vh;
       position: fixed;
-      z-index: 1000;
       left: 0;
       top: 0;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-right: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .sidebar-header {
+      padding: 32px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sidebar-logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), #a855f7);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 12px 16px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: #94a3b8;
+      text-decoration: none;
+      border-radius: 10px;
+      margin-bottom: 4px;
+      transition: all 0.2s;
+      font-weight: 500;
+      font-size: 14.5px;
+    }
+
+    .nav-item:hover {
+      background: rgba(255,255,255,0.05);
+      color: white;
+    }
+
+    .nav-item.active {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary-light);
+      position: relative;
+    }
+
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 12px;
+      bottom: 12px;
+      width: 3px;
+      background: var(--primary);
+      border-radius: 0 4px 4px 0;
+    }
+
+    .sidebar-footer {
+      padding: 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Main Content */
+    .main-wrapper {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .header {
+      height: var(--header-height);
+      background: var(--surface);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      transition: background 0.3s ease, border 0.3s ease;
+    }
+    [data-theme="dark"] .header {
+      background: rgba(30, 41, 59, 0.8);
+    }
+
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .content-area {
+      padding: 32px;
+      max-width: 1200px;
       width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.5);
-      overflow: auto;
+      margin: 0 auto;
     }
-    .modal-content {
-      background-color: var(--card);
-      margin: 5% auto;
-      padding: 24px;
+
+    /* UI Components */
+    .card {
+      background: var(--surface);
+      border-radius: 16px;
       border: 1px solid var(--border);
-      border-radius: 12px;
-      width: 90%;
-      max-width: 600px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      padding: 32px;
+      box-shadow: var(--shadow);
+      margin-bottom: 32px;
+      transition: box-shadow 0.3s ease;
     }
-    .close {
-      color: var(--muted);
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
+
+    .card:hover {
+      box-shadow: var(--shadow-lg);
+    }
+
+    h2 { font-size: 24px; margin-top: 0; margin-bottom: 24px; font-weight: 700; }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
       cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      gap: 8px;
+      text-decoration: none;
     }
-    .close:hover {
-      color: var(--text);
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-danger:hover { background: #dc2626; }
+
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+    .btn-outline:hover { background: #f8fafc; }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: var(--text-main); }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: #ffffff;
     }
-    @media (max-width: 720px) {
-      body { padding: 14px; }
-      .header { flex-direction: column; align-items: flex-start; margin-bottom: 20px; }
-      .nav-links { gap: 8px; margin-bottom: 20px; }
-      .nav-link { width: fit-content; }
-      form { padding: 16px; }
-      .stat-grid { gap: 12px; }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    table th {
+      background: #f8fafc;
+      padding: 16px 20px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    table td {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* Mobile Styles */
+    .mobile-menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--text-main);
+    }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 95;
+      backdrop-filter: blur(2px);
+    }
+
+    @media (max-width: 1024px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .main-wrapper {
+        margin-left: 0;
+      }
+      .mobile-menu-toggle {
+        display: block;
+      }
+      .overlay.show {
+        display: block;
+      }
+      .content-area {
+        padding: 20px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .header { padding: 0 16px; }
+      .header-user span { display: none; }
+      .stat-grid { grid-template-columns: 1fr ! from 1fr 1fr; }
+    }
+
+    /* Custom Styles for existing elements */
+    .message { margin: 16px 0; padding: 12px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 500; }
+    .success { background: #dcfce7; color: #166534; border: 1px solid #bcf0da; }
+    .error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 40px; }
+    .stat-card { 
+      background: white; 
+      padding: 28px; 
+      border-radius: 20px; 
+      border: 1px solid var(--border); 
+      box-shadow: var(--shadow);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    .stat-card h3 { margin: 0 0 12px 0; color: var(--text-muted); font-size: 14px; font-weight: 600; }
+    .stat-card p { margin: 0; font-size: 32px; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em; }
+    .stat-card .trend { font-size: 12px; margin-top: 8px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+    .trend-up { color: #10b981; }
+
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+    .modal-content { background: white; margin: 50px auto; padding: 32px; border-radius: 16px; width: 90%; max-width: 600px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+    .close { float: right; font-size: 24px; font-weight: bold; cursor: pointer; color: var(--text-muted); }
+    
+    .btn-edit { background: #3b82f6; color: white; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; margin-right: 4px; }
+    .btn-delete { background: #ef4444; color: white; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; }
+
+    /* Sticky fixes */
+    .actions-cell { display: flex; gap: 8px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>Admin Panel</h1>
-      <div>
-        <span id="adminUsername"></span>
-        <a href="/admin/classes" class="superadmin-only" id="addClassBtn" style="display: none; margin-right: 10px; padding: 8px 16px; background: #6f42c1; color: white; text-decoration: none; border-radius: 4px;">Manage Classes</a>
-        <a href="/admin/add" class="add-admin-btn superadmin-only" id="addAdminBtn" style="display: none; margin-right: 10px; padding: 8px 16px; background: #17a2b8; color: white; text-decoration: none; border-radius: 4px;">Add Admin</a>
-        <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
+  <div class="overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  
+  <aside class="sidebar" id="mainSidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">Q</div>
+      <div style="font-weight: 700; font-size: 18px;">Admin Panel</div>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <a href="/admin/overview" class="nav-item ${activeTab === 'overview' ? 'active' : ''}">
+        <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i>
+        <span>Overview</span>
+      </a>
+      <a href="/admin/contestants" class="nav-item ${activeTab === 'contestants' ? 'active' : ''}">
+        <i data-lucide="users" style="width: 18px; height: 18px;"></i>
+        <span>Contestants</span>
+      </a>
+      <a href="/admin/questions" class="nav-item ${activeTab === 'questions' ? 'active' : ''}">
+        <i data-lucide="help-circle" style="width: 18px; height: 18px;"></i>
+        <span>Questions</span>
+      </a>
+      <a href="/admin/results" class="nav-item ${activeTab === 'results' ? 'active' : ''}">
+        <i data-lucide="award" style="width: 18px; height: 18px;"></i>
+        <span>Results</span>
+      </a>
+      <a href="/admin/recordings" class="nav-item ${activeTab === 'recordings' ? 'active' : ''}">
+        <i data-lucide="video" style="width: 18px; height: 18px;"></i>
+        <span>Recordings</span>
+      </a>
+      <a href="/admin/classes" class="nav-item superadmin-only ${activeTab === 'classes' ? 'active' : ''}" style="display: none;">
+        <i data-lucide="layers" style="width: 18px; height: 18px;"></i>
+        <span>Classes</span>
+      </a>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <button class="btn btn-danger" style="width: 100%; gap: 10px;" onclick="logoutAdmin()">
+        <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="header">
+      <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="header-title" style="font-weight: 600; font-size: 18px;">
+        ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+      </div>
+      <div class="header-user" style="display: flex; align-items: center; gap: 16px;">
+        <button id="themeToggle" class="btn btn-outline" style="padding: 8px; border-radius: 10px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;" title="Toggle Theme">
+          <i id="themeIcon" data-lucide="moon" style="width: 18px; height: 18px;"></i>
+        </button>
+        <span id="adminUsername" style="font-size: 14px; font-weight: 500; color: var(--text-muted);"></span>
+        <a href="/admin/add" class="btn btn-primary btn-sm superadmin-only" id="addAdminBtn" style="display: none; padding: 6px 12px; font-size: 12px;">Add Admin</a>
+      </div>
+    </header>
+
+    <main class="content-area">
+      ${content}
+    </main>
+  </div>
+
+  <!-- Custom Confirmation Modal -->
+  <div id="confirmModal" class="modal" style="display: none; align-items: center; justify-content: center; z-index: 2000;">
+    <div class="modal-content" style="max-width: 400px; padding: 24px; text-align: center;">
+      <div id="confirmIcon" style="margin-bottom: 16px; font-size: 48px;">⚠️</div>
+      <h3 id="confirmTitle" style="margin-bottom: 8px;">Are you sure?</h3>
+      <p id="confirmMessage" style="color: var(--text-muted); margin-bottom: 24px;">This action cannot be undone.</p>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button class="btn btn-outline" id="confirmCancelBtn" style="flex: 1;">Cancel</button>
+        <button class="btn btn-danger" id="confirmOkBtn" style="flex: 1;">Yes, Proceed</button>
       </div>
     </div>
-
-    <div class="nav-links">
-      <a href="/admin/overview" class="nav-link ${activeTab === 'overview' ? 'active' : ''}">Overview</a>
-      <a href="/admin/contestants" class="nav-link ${activeTab === 'contestants' ? 'active' : ''}">Contestants</a>
-      <a href="/admin/questions" class="nav-link ${activeTab === 'questions' ? 'active' : ''}">Questions</a>
-      <a href="/admin/results" class="nav-link ${activeTab === 'results' ? 'active' : ''}">Results</a>
-      <a href="/admin/classes" class="nav-link superadmin-only ${activeTab === 'classes' ? 'active' : ''}" style="display: none;">Classes</a>
-    </div>
-
-    ${content}
   </div>
 
   <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById('mainSidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('show');
+    }
+
     // Load admin data on page load
+    // Theme logic
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const html = document.documentElement;
+
+    function setTheme(theme) {
+      html.setAttribute('data-theme', theme);
+      localStorage.setItem('admin-theme', theme);
+      if (themeIcon) {
+        themeIcon.setAttribute('data-lucide', theme === 'dark' ? 'sun' : 'moon');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+    }
+
+    const savedTheme = localStorage.getItem('admin-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    setTheme(savedTheme);
+
+    if (themeToggle) {
+      themeToggle.addEventListener('click', () => {
+        const currentTheme = html.getAttribute('data-theme');
+        setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+      });
+    }
+
     window.addEventListener('load', async () => {
       await checkUserRole();
       await loadClasses();
@@ -471,6 +790,9 @@ export function generateAdminPage(content, activeTab = 'overview') {
         await loadPageData();
       }
       attachEventListeners();
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
     });
 
     // Check user role
@@ -479,14 +801,16 @@ export function generateAdminPage(content, activeTab = 'overview') {
         const res = await fetch('/admin/role');
         const data = await res.json();
         
-        document.getElementById('adminUsername').textContent = 'Logged in as: ' + data.username;
+        document.getElementById('adminUsername').textContent = data.username;
         window.isSuperadmin = data.role === 'superadmin';
         window.allowedClasses = Array.isArray(data.allowedClasses) ? data.allowedClasses : [];
         
         if (window.isSuperadmin) {
-          document.getElementById('addAdminBtn').style.display = 'inline-block';
-          document.getElementById('addClassBtn').style.display = 'inline-block';
+          const addAdminBtn = document.getElementById('addAdminBtn');
+          if (addAdminBtn) addAdminBtn.style.display = 'inline-flex';
+          
           document.querySelectorAll('.superadmin-only').forEach(el => {
+            el.style.display = (el.tagName === 'A' || el.tagName === 'BUTTON') ? 'inline-flex' : 'block';
             el.classList.add('show');
           });
         }
@@ -495,15 +819,13 @@ export function generateAdminPage(content, activeTab = 'overview') {
       }
     }
 
-    // Load classes for dropdowns/checkboxes (returns only allowed classes for admins)
+    // Load classes for dropdowns/checkboxes
     async function loadClasses() {
       try {
         const res = await fetch('/admin/classes/data', { credentials: 'include' });
         const data = await res.json();
-        if (!res.ok || data.status !== 'success') {
-          console.error('Failed to load classes', data);
-          return;
-        }
+        if (!res.ok || data.status !== 'success') return;
+        
         const classes = data.classes || [];
         window.loadedClasses = classes;
         renderClassOptions(classes);
@@ -514,11 +836,13 @@ export function generateAdminPage(content, activeTab = 'overview') {
     }
 
     function renderClassOptions(classList) {
-      const selectIds = ['contestantClass', 'questionClass'];
+      const selectIds = ['contestantClass', 'questionClass', 'editContestantClass', 'editQuestionClass'];
       selectIds.forEach(id => {
         const sel = document.getElementById(id);
         if (!sel) return;
-        sel.innerHTML = '<option value=\"\">Select a class</option>' + classList.map(c => \`<option value=\"\${c}\">\${c}</option>\`).join('');
+        const currentVal = sel.value;
+        sel.innerHTML = '<option value="">Select a class</option>' + classList.map(c => \`<option value="\${c}">\${c}</option>\`).join('');
+        if (currentVal) sel.value = currentVal;
       });
     }
 
@@ -526,14 +850,13 @@ export function generateAdminPage(content, activeTab = 'overview') {
       const box = document.getElementById('classCheckboxes');
       if (!box) return;
       box.innerHTML = classList.map(c => \`
-        <label style="display:flex; align-items:center; gap:6px; white-space: nowrap;">
-          <input type="checkbox" class="admin-class-checkbox" value="\${c}" /> \${c}
+    <label style="display:flex; align-items:center; gap:8px; white-space: nowrap; padding: 8px 12px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">
+      <input type="checkbox" class="admin-class-checkbox" value="\${c}" style="width: auto; margin: 0;" /> \${c}
         </label>\`).join('');
     }
 
-    // Restrict class dropdowns based on allowed classes
     function applyClassRestrictions() {
-      if (window.isSuperadmin) return; // no restriction for superadmin
+      if (window.isSuperadmin) return;
       const allowed = window.allowedClasses || [];
       ['contestantClass', 'questionClass'].forEach(id => {
         const select = document.getElementById(id);
@@ -542,20 +865,41 @@ export function generateAdminPage(content, activeTab = 'overview') {
           if (!opt.value) return;
           opt.disabled = allowed.length > 0 && !allowed.includes(opt.value);
         });
-        // If current selection is not allowed, reset
-        if (select.value && select.selectedOptions.length && select.selectedOptions[0].disabled) {
-          select.value = '';
-        }
       });
     }
 
-    // Attach event listeners
     function attachEventListeners() {
       ${getEventListenersScript(activeTab)}
     }
 
-    // Logout handler
+    function showConfirm(title, message, icon = '⚠️') {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('confirmModal');
+        const titleEl = document.getElementById('confirmTitle');
+        const msgEl = document.getElementById('confirmMessage');
+        const iconEl = document.getElementById('confirmIcon');
+        const okBtn = document.getElementById('confirmOkBtn');
+        const cancelBtn = document.getElementById('confirmCancelBtn');
+
+        titleEl.textContent = title;
+        msgEl.textContent = message;
+        iconEl.textContent = icon;
+        modal.style.display = 'flex';
+
+        const cleanup = () => {
+          modal.style.display = 'none';
+          okBtn.onclick = null;
+          cancelBtn.onclick = null;
+        };
+
+        okBtn.onclick = () => { cleanup(); resolve(true); };
+        cancelBtn.onclick = () => { cleanup(); resolve(false); };
+      });
+    }
+
     async function logoutAdmin() {
+      const confirmed = await showConfirm('Logout', 'Are you sure you want to end your session?', '🚪');
+      if (!confirmed) return;
       try {
         await fetch('/admin/logout', { method: 'POST' });
         window.location.href = '/admin/login';
@@ -570,23 +914,67 @@ export function generateAdminPage(content, activeTab = 'overview') {
 
 // Page content templates
 export const overviewContent = `
-  <h2>Overview</h2>
   <div class="stat-grid">
     <div class="stat-card">
-      <h3>Total Classes</h3>
-      <p id="totalClasses">Loading...</p>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <h3>Total Classes</h3>
+        <div style="background: rgba(99, 102, 241, 0.1); padding: 8px; border-radius: 10px; color: var(--primary);">
+          <i data-lucide="layers" style="width: 20px; height: 20px;"></i>
+        </div>
+      </div>
+      <p id="totalClasses">0</p>
+      <div class="trend trend-up">
+        <i data-lucide="trending-up" style="width: 14px; height: 14px;"></i>
+        <span>Active sessions</span>
+      </div>
     </div>
     <div class="stat-card">
-      <h3>Total Contestants</h3>
-      <p id="totalContestants">Loading...</p>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <h3>Total Contestants</h3>
+        <div style="background: rgba(16, 185, 129, 0.1); padding: 8px; border-radius: 10px; color: #10b981;">
+          <i data-lucide="users" style="width: 20px; height: 20px;"></i>
+        </div>
+      </div>
+      <p id="totalContestants">0</p>
+      <div class="trend trend-up">
+        <i data-lucide="trending-up" style="width: 14px; height: 14px;"></i>
+        <span>New registrations</span>
+      </div>
     </div>
     <div class="stat-card">
-      <h3>Total Questions</h3>
-      <p id="totalQuestions">Loading...</p>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <h3>Total Questions</h3>
+        <div style="background: rgba(245, 158, 11, 0.1); padding: 8px; border-radius: 10px; color: #f59e0b;">
+          <i data-lucide="help-circle" style="width: 20px; height: 20px;"></i>
+        </div>
+      </div>
+      <p id="totalQuestions">0</p>
+      <div class="trend trend-up">
+        <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+        <span>Resource bank</span>
+      </div>
     </div>
     <div class="stat-card">
-      <h3>Total Results</h3>
-      <p id="totalResults">Loading...</p>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <h3>Total Results</h3>
+        <div style="background: rgba(239, 68, 68, 0.1); padding: 8px; border-radius: 10px; color: #ef4444;">
+          <i data-lucide="award" style="width: 20px; height: 20px;"></i>
+        </div>
+      </div>
+      <p id="totalResults">0</p>
+      <div class="trend trend-up">
+        <i data-lucide="check-circle" style="width: 14px; height: 14px;"></i>
+        <span>Completed quizzes</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Quick Actions</h3>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <a href="/admin/contestants" class="btn btn-outline">Manage Contestants</a>
+      <a href="/admin/questions" class="btn btn-outline">Manage Questions</a>
+      <a href="/admin/results" class="btn btn-outline">View Results</a>
     </div>
   </div>
 
@@ -610,38 +998,52 @@ export const overviewContent = `
 `;
 
 export const contestantsContent = `
-  <h2>Contestants</h2>
-  <form id="contestantForm">
-    <div class="form-group">
-      <label for="contestantName">Contestant Name</label>
-      <input type="text" id="contestantName" required />
+  <div class="card">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+      <div style="background: rgba(99, 102, 241, 0.1); padding: 8px; border-radius: 10px; color: var(--primary);">
+        <i data-lucide="user-plus" style="width: 20px; height: 20px;"></i>
+      </div>
+      <h2 style="margin: 0;">Add New Contestant</h2>
     </div>
-    <div class="form-group">
-      <label for="contestantUSN">USN (e.g., TY23BCA001)</label>
-      <input type="text" id="contestantUSN" required placeholder="TY23BCA001" />
-    </div>
-    <div class="form-group">
-      <label for="contestantQuizCode">Quiz Code</label>
-      <input type="text" id="contestantQuizCode" required placeholder="e.g., AI-ML-2025" />
-    </div>
-    <div class="form-group">
-      <label for="contestantPassword">Contestant Password (assigned by admin)</label>
-      <input type="text" id="contestantPassword" required placeholder="Password for this contestant" />
-    </div>
-    <div class="form-group">
-      <label for="contestantClass">Class</label>
-      <select id="contestantClass" required>
-        <option value="">Select a class</option>
-      </select>
-    </div>
-    <button type="submit">Add Contestant</button>
-    <div id="contestantMessage" class="message"></div>
-  </form>
+    <form id="contestantForm">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+        <div class="form-group">
+          <label for="contestantName">Contestant Name</label>
+          <input type="text" id="contestantName" required placeholder="Full Name" />
+        </div>
+        <div class="form-group">
+          <label for="contestantUSN">USN</label>
+          <input type="text" id="contestantUSN" required placeholder="e.g. TY23BCA001" />
+        </div>
+        <div class="form-group">
+          <label for="contestantClass">Class</label>
+          <select id="contestantClass" required>
+            <option value="">Select a class</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="contestantQuizCode">Quiz Code</label>
+          <input type="text" id="contestantQuizCode" required placeholder="e.g. AI-ML-2025" />
+        </div>
+        <div class="form-group">
+          <label for="contestantPassword">Assigned Password</label>
+          <input type="text" id="contestantPassword" required placeholder="Contestant login password" />
+        </div>
+      </div>
+      <div style="margin-top: 24px;">
+        <button type="submit" class="btn btn-primary">Add Contestant</button>
+      </div>
+      <div id="contestantMessage" class="message"></div>
+    </form>
+  </div>
   
-  <div class="content-section">
-    <h3>All Contestants</h3>
-    <div id="contestantsMessage" class="message"></div>
-    <div id="contestantsContainer" style="overflow-x: auto;">
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+      <h3 style="margin: 0;">Contestant Directory</h3>
+      <div id="contestantsMessage" class="message" style="margin: 0;"></div>
+    </div>
+    
+    <div style="overflow-x: auto;">
       <table>
         <thead>
           <tr>
@@ -650,11 +1052,11 @@ export const contestantsContent = `
             <th>Class</th>
             <th>Quiz Code</th>
             <th>Password</th>
-            <th>Actions</th>
+            <th style="width: 150px;">Actions</th>
           </tr>
         </thead>
         <tbody id="contestantsBody">
-          <tr><td colspan="6" style="padding: 12px;">Loading...</td></tr>
+          <tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted);">Loading contestants...</td></tr>
         </tbody>
       </table>
     </div>
@@ -687,7 +1089,7 @@ export const contestantsContent = `
           <label for="editContestantPassword">Password</label>
           <input type="text" id="editContestantPassword" />
         </div>
-        <button type="submit">Update Contestant</button>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Update Contestant</button>
         <div id="editContestantMessage" class="message"></div>
       </form>
     </div>
@@ -721,7 +1123,6 @@ export const contestantsContent = `
         }
 
         body.innerHTML = data.contestants.map(c => {
-          const date = new Date(c.createdAt || c._id).toLocaleString();
           return \`<tr data-id="\${c._id}">
             <td>\${c.name || '-'}</td>
             <td>\${c.usn || '-'}</td>
@@ -729,8 +1130,10 @@ export const contestantsContent = `
             <td>\${c.quizCode || '-'}</td>
             <td>\${c.quizPassword ? '••••••' : '-'}</td>
             <td>
-              <button class="btn-edit" onclick="openEditContestantModal('\${c._id}', '\${c.name}', '\${c.usn}', '\${c.className}', '\${c.quizCode}', '\${c.quizPassword || ''}')">Edit</button>
-              <button class="btn-delete" onclick="deleteContestant('\${c._id}')">Delete</button>
+              <div class="actions-cell">
+                <button class="btn-edit" onclick="openEditContestantModal('\${c._id}', '\${(c.name || '').replace(/'/g, "\\\\'")}', '\${c.usn || ''}', '\${c.className || ''}', '\${c.quizCode || ''}', '\${c.quizPassword || ''}')">Edit</button>
+                <button class="btn-delete" onclick="deleteContestant('\${c._id}')">Delete</button>
+              </div>
             </td>
           </tr>\`;
         }).join('');
@@ -812,7 +1215,8 @@ export const contestantsContent = `
     });
 
     async function deleteContestant(id) {
-      if (!confirm('Are you sure you want to delete this contestant?')) return;
+      const confirmed = await showConfirm('Delete Contestant', 'Are you sure you want to remove this contestant?');
+      if (!confirmed) return;
       
       try {
         const res = await fetch(\`/api/quiz/contestant/\${id}\`, {
@@ -899,60 +1303,79 @@ export const contestantsContent = `
 `;
 
 export const questionsContent = `
-  <h2>Questions</h2>
-  <form id="questionForm">
-    <div class="form-group">
-      <label for="questionText">Question Text</label>
-      <textarea id="questionText" rows="3" required placeholder="Enter your question here..."></textarea>
+  <div class="card">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+      <div style="background: rgba(99, 102, 241, 0.1); padding: 8px; border-radius: 10px; color: var(--primary);">
+        <i data-lucide="help-circle" style="width: 20px; height: 20px;"></i>
+      </div>
+      <h2 style="margin: 0;">Add New Question</h2>
     </div>
-    <div class="form-group">
-      <label for="questionQuizCode">Quiz Code</label>
-      <input type="text" id="questionQuizCode" required placeholder="e.g., AI-ML-2025" />
-    </div>
-    <div class="form-group">
-      <label for="questionClass">Class</label>
-      <select id="questionClass" required>
-        <option value="">Select a class</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Options (4 required)</label>
-      <input type="text" id="option1" placeholder="Option 1" required />
-      <input type="text" id="option2" placeholder="Option 2" required />
-      <input type="text" id="option3" placeholder="Option 3" required />
-      <input type="text" id="option4" placeholder="Option 4" required />
-    </div>
-    <div class="form-group">
-      <label for="correctAnswer">Correct Answer</label>
-      <select id="correctAnswer" required>
-        <option value="">Select correct answer</option>
-        <option value="option1" id="correctOption1">Option 1</option>
-        <option value="option2" id="correctOption2">Option 2</option>
-        <option value="option3" id="correctOption3">Option 3</option>
-        <option value="option4" id="correctOption4">Option 4</option>
-      </select>
-    </div>
-    <button type="submit">Add Question</button>
-    <div id="questionMessage" class="message"></div>
-  </form>
+    <form id="questionForm">
+      <div class="form-group">
+        <label for="questionText">Question Text</label>
+        <textarea id="questionText" rows="3" required placeholder="Enter your question here..."></textarea>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+        <div class="form-group">
+          <label for="questionQuizCode">Quiz Code</label>
+          <input type="text" id="questionQuizCode" required placeholder="e.g. AI-ML-2025" />
+        </div>
+        <div class="form-group">
+          <label for="questionClass">Class</label>
+          <select id="questionClass" required>
+            <option value="">Select a class</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Options</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <input type="text" id="option1" placeholder="Option 1" required />
+          <input type="text" id="option2" placeholder="Option 2" required />
+          <input type="text" id="option3" placeholder="Option 3" required />
+          <input type="text" id="option4" placeholder="Option 4" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="correctAnswer">Correct Answer</label>
+        <select id="correctAnswer" required>
+          <option value="">Select correct answer</option>
+          <option value="option1" id="correctOption1">Option 1</option>
+          <option value="option2" id="correctOption2">Option 2</option>
+          <option value="option3" id="correctOption3">Option 3</option>
+          <option value="option4" id="correctOption4">Option 4</option>
+        </select>
+      </div>
+
+      <div style="margin-top: 24px;">
+        <button type="submit" class="btn btn-primary">Add Question</button>
+      </div>
+      <div id="questionMessage" class="message"></div>
+    </form>
+  </div>
   
-  <div class="content-section">
-    <h3>All Questions</h3>
-    <div id="questionsMessage" class="message"></div>
-    <div id="questionsContainer" style="overflow-x: auto;">
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+      <h3 style="margin: 0;">Question Bank</h3>
+      <div id="questionsMessage" class="message" style="margin: 0;"></div>
+    </div>
+    
+    <div style="overflow-x: auto;">
       <table>
         <thead>
           <tr>
             <th>Question</th>
             <th>Class</th>
             <th>Quiz Code</th>
-            <th>Options</th>
             <th>Correct Answer</th>
-            <th>Actions</th>
+            <th style="width: 150px;">Actions</th>
           </tr>
         </thead>
         <tbody id="questionsBody">
-          <tr><td colspan="6" style="padding: 12px;">Loading...</td></tr>
+          <tr><td colspan="5" style="padding: 24px; text-align: center; color: var(--text-muted);">Loading questions...</td></tr>
         </tbody>
       </table>
     </div>
@@ -978,11 +1401,13 @@ export const questionsContent = `
           <input type="text" id="editQuestionQuizCode" required />
         </div>
         <div class="form-group">
-          <label>Options (4 required)</label>
-          <input type="text" id="editOption1" required />
-          <input type="text" id="editOption2" required />
-          <input type="text" id="editOption3" required />
-          <input type="text" id="editOption4" required />
+          <label>Options</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <input type="text" id="editOption1" required />
+            <input type="text" id="editOption2" required />
+            <input type="text" id="editOption3" required />
+            <input type="text" id="editOption4" required />
+          </div>
         </div>
         <div class="form-group">
           <label for="editCorrectAnswer">Correct Answer</label>
@@ -994,7 +1419,7 @@ export const questionsContent = `
             <option value="option4" id="editCorrectOption4">Option 4</option>
           </select>
         </div>
-        <button type="submit">Update Question</button>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Update Question</button>
         <div id="editQuestionMessage" class="message"></div>
       </form>
     </div>
@@ -1034,12 +1459,12 @@ export const questionsContent = `
             <td title="\${q.questionText || ''}">\${questionPreview || '-'}</td>
             <td>\${q.className || '-'}</td>
             <td>\${q.quizCode || '-'}</td>
-            <td title="\${optionsText}">\${optionsText.substring(0, 40)}...</td>
             <td>\${q.correctAnswer || '-'}</td>
             <td>
-            <!--Edit button is disabled for now-->
-              <button class="btn-edit" onclick="OpenEditQuestionModal('\${q._id}', '\${(q.questionText || '').replace(/'/g, "\\\\'")}', '\${q.className || ''}', '\${q.quizCode || ''}', \${JSON.stringify(q.options || [])}, '\${(q.correctAnswer || '').replace(/'/g, "\\\\'")}')">Edit</button>
-              <button class="btn-delete" onclick="deleteQuestion('\${q._id}')">Delete</button>
+              <div class="actions-cell">
+                <button class="btn-edit" onclick="OpenEditQuestionModal('\${q._id}', '\${(q.questionText || '').replace(/'/g, "\\\\'")}', '\${q.className || ''}', '\${q.quizCode || ''}', \${JSON.stringify(q.options || [])}, '\${(q.correctAnswer || '').replace(/'/g, "\\\\'")}')">Edit</button>
+                <button class="btn-delete" onclick="deleteQuestion('\${q._id}')">Delete</button>
+              </div>
             </td>
           </tr>\`;
         }).join('');
@@ -1162,7 +1587,8 @@ export const questionsContent = `
     });
 
     async function deleteQuestion(id) {
-      if (!confirm('Are you sure you want to delete this question?')) return;
+      const confirmed = await showConfirm('Delete Question', 'Are you sure you want to remove this question?');
+      if (!confirmed) return;
       
       try {
         const res = await fetch(\`/api/quiz/question/\${id}\`, {
@@ -1282,24 +1708,29 @@ export const questionsContent = `
 `;
 
 export const resultsContent = `
-  <h2>Results</h2>
-  <div id="resultsMessage" class="message"></div>
-  <div id="resultsContainer" style="overflow-x: auto;">
-    <table id="resultsTable" style="width: 100%; border-collapse: collapse;">
-      <thead>
-        <tr style="text-align: left;">
-          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Name</th>
-          <th style="padding: 8px; border-bottom: 1px solid #ddd;">USN</th>
-          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Class</th>
-          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Score</th>
-          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Submitted At</th>
-          <th style="padding: 8px; border-bottom: 1px solid #ddd;">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="resultsBody">
-        <tr><td colspan="6" style="padding: 12px;">Loading...</td></tr>
-      </tbody>
-    </table>
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+      <h2 style="margin: 0;">Quiz Results</h2>
+      <div id="resultsMessage" class="message" style="margin: 0;"></div>
+    </div>
+    
+    <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Candidate</th>
+            <th>USN</th>
+            <th>Class</th>
+            <th>Score</th>
+            <th>Submitted At</th>
+            <th style="width: 100px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody">
+          <tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted);">Loading results...</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -1335,13 +1766,13 @@ export const resultsContent = `
         body.innerHTML = data.results.map(r => {
           const date = new Date(r.submittedAt || r.createdAt || r._id).toLocaleString();
           return \`<tr data-id="\${r._id}">
-            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${r.name || '-'}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${r.usn || '-'}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${r.className || '-'}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${r.score ?? '-'}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">\${date}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #f0f0f0;">
-              <button class="delete-result-btn" data-id="\${r._id}" style="background:#dc3545; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; pointer-events:auto; position:relative; z-index:1;">Delete</button>
+            <td>\${r.name || '-'}</td>
+            <td>\${r.usn || '-'}</td>
+            <td>\${r.className || '-'}</td>
+            <td><span class="status-badge" style="background:#f1f5f9; color:var(--primary); text-align: center; display: inline-block; width: 30px;">\${r.score ?? '-'}</span></td>
+            <td style="font-size:13px; color:var(--text-muted);">\${date}</td>
+            <td>
+              <button class="btn btn-danger btn-sm delete-result-btn" data-id="\${r._id}" style="padding: 6px 10px; font-size: 12px;">Delete</button>
             </td>
           </tr>\`;
         }).join('');
@@ -1425,28 +1856,240 @@ export const resultsContent = `
   </script>
 `;
 
-export const classesContent = `
-  <h2>Classes</h2>
-  <div id="classesMessage" class="message"></div>
-  <form id="addClassForm" style="margin-bottom: 20px;">
-    <div class="form-group">
-      <label for="newClassName">Class Name</label>
-      <input type="text" id="newClassName" placeholder="e.g., BCA-IV" required />
+export const recordingsContent = `
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+      <div style="flex:1; min-width:300px; position:relative">
+        <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; color:var(--text-muted)"></i>
+        <input id="recFilter" type="text" placeholder="Search by USN, Name or Quiz Code..." style="padding:12px 12px 12px 36px; border:1px solid var(--border); border-radius:8px; width:100%;" />
+      </div>
+      <button onclick="loadPageData()" class="btn btn-outline"><i data-lucide="refresh-cw"></i> Refresh</button>
     </div>
-    <button type="submit">Add Class</button>
-  </form>
-  <div id="classesListContainer">
-    <table style="width:100%; border-collapse: collapse;">
-      <thead>
-        <tr style="text-align:left;">
-          <th style="padding:8px; border-bottom:1px solid #ddd;">Class Name</th>
-          <th style="padding:8px; border-bottom:1px solid #ddd;">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="classesTableBody">
-        <tr><td colspan="2" style="padding: 12px;">Loading...</td></tr>
-      </tbody>
-    </table>
+  </div>
+
+  <div class="card">
+    <div id="recMessage" class="message"></div>
+    <div style="overflow-x: auto;">
+      <table id="recTable">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>USN</th>
+            <th>Quiz</th>
+            <th>Recorded At</th>
+            <th>Size</th>
+            <th>Score</th>
+            <th>Status</th>
+            <th style="text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="recBody">
+          <tr><td colspan="8" style="padding:32px; text-align:center; color: var(--text-muted);">Loading proctor logs...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="playerModal" class="modal" style="display:none; align-items:center; justify-content:center;">
+    <div class="modal-content" style="max-width:960px; width:95%; position:relative; background:#1e293b; color:white;">
+      <span class="close" onclick="closePlayer()" style="color:white; opacity:0.8;">&times;</span>
+      <h3 id="playerTitle" style="margin-top:0; margin-bottom:20px; display:flex; align-items:center; gap:10px"></h3>
+      <video id="proctorPlayer" controls playsinline style="width:100%; border-radius:12px; background:black; max-height:70vh;"></video>
+      <div id="playerMeta" style="margin-top:16px; color:#94a3b8; font-size:14px; display:flex; justify-content:space-between; align-items:center;"></div>
+    </div>
+  </div>
+
+  <div id="malpModal" class="modal" style="display:none; align-items:center; justify-content:center;">
+    <div class="modal-content" style="max-width:600px; width:95%; max-height:85vh; overflow-y:auto">
+      <span class="close" onclick="closeMalpModal()">&times;</span>
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px">
+        <h3 style="margin:0">Malpractice Log</h3>
+      </div>
+      <div id="malpList" style="display:flex; flex-direction:column; gap:12px;"></div>
+      <div id="malpEmpty" style="display:none; text-align:center; padding:48px; color:var(--text-muted);">No incidents recorded.</div>
+    </div>
+  </div>
+
+  <style>
+    .malp-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700; }
+    .malp-yes { background:#fef2f2; color:#ef4444; border:1px solid #fee2e2; }
+    .malp-no  { background:#ecfdf5; color:#10b981; border:1px solid #d1fae5; }
+    .rec-action-btn { background:none; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px; }
+    .rec-action-btn:hover { background: rgba(0,0,0,0.05); }
+  </style>
+
+  <script>
+    let allRecordings = [];
+
+    async function loadPageData() {
+      const body = document.getElementById('recBody');
+      const msg  = document.getElementById('recMessage');
+      msg.textContent = '';
+      body.innerHTML  = '<tr><td colspan="8" style="padding:16px; text-align:center;">Loading…</td></tr>';
+      try {
+        const res  = await fetch('/api/proctor/list', { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok || data.status !== 'success') throw new Error(data.message || 'Failed');
+        allRecordings = data.recordings || [];
+        renderTable(allRecordings);
+      } catch (err) {
+        msg.className   = 'message error';
+        msg.textContent = 'Error loading recordings: ' + err.message;
+        body.innerHTML  = '<tr><td colspan="8" style="padding:16px; text-align:center;">Failed to load</td></tr>';
+      }
+    }
+
+    function renderTable(rows) {
+      const body = document.getElementById('recBody');
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="8" style="padding:32px; text-align:center; color:#64748b;">No recordings found yet. Recordings appear here after students attempt a quiz.</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map(r => {
+        const dt     = new Date(r.recordedAt).toLocaleString();
+        const malp   = r.malpracticeDetected
+          ? \`<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
+               <span class="malp-badge malp-yes">⚠️ \${r.malpracticeCount} event\${r.malpracticeCount !== 1 ? 's' : ''}</span>
+               <button class="rec-action-btn" style="color:#991b1b; text-decoration:underline;" 
+                       onclick="viewMalp('\${r.filename}')">Details</button>
+             </div>\`
+          : '<span class="malp-badge malp-no">✓ Clean</span>';
+        const score  = r.quizScore !== null ? r.quizScore : '—';
+        return \`<tr>
+          <td style="font-weight:600">\${r.contestantName || '—'}</td>
+          <td><code>\${r.contestantId}</code></td>
+          <td><code>\${r.quizId}</code></td>
+          <td style="white-space:nowrap; font-size:13px; color:var(--text-muted);">\${dt}</td>
+          <td>\${r.sizeMB} MB</td>
+          <td><span class="status-badge" style="background:#f1f5f9; color:var(--primary);">\${score}</span></td>
+          <td>\${malp}</td>
+          <td style="text-align:right;">
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+              <button class="btn btn-outline btn-sm" onclick="openPlayer('\${r.filename}', '\${(r.contestantName || '—').replace(/'/g, "\\\\'")}')" style="padding:6px 10px;">Play</button>
+              <a href="/api/proctor/download/\${encodeURIComponent(r.filename)}" download class="btn btn-outline btn-sm" style="padding:6px 10px; text-decoration:none;">Get</a>
+              <button class="btn btn-danger btn-sm" onclick="deleteRec('\${r.filename}')" style="padding:6px 10px;">Del</button>
+            </div>
+          </td>
+        </tr>\`;
+      }).join('');
+    }
+
+    document.getElementById('recFilter')?.addEventListener('input', function() {
+      const q = this.value.toLowerCase();
+      const filtered = allRecordings.filter(r =>
+        (r.contestantId || '').toLowerCase().includes(q) ||
+        (r.contestantName || '').toLowerCase().includes(q) ||
+        (r.quizId || '').toLowerCase().includes(q)
+      );
+      renderTable(filtered);
+    });
+
+    function openPlayer(filename, title) {
+      const modal = document.getElementById('playerModal');
+      const video = document.getElementById('proctorPlayer');
+      const tEl   = document.getElementById('playerTitle');
+      const meta  = document.getElementById('playerMeta');
+      tEl.textContent = title;
+      video.src       = '/api/proctor/stream/' + encodeURIComponent(filename);
+      meta.innerHTML  = \`File: <code>\${filename}</code>\`;
+      modal.style.display = 'flex';
+      video.play().catch(() => {});
+    }
+
+    function closePlayer() {
+      const modal = document.getElementById('playerModal');
+      const video = document.getElementById('proctorPlayer');
+      video.pause();
+      video.src = '';
+      modal.style.display = 'none';
+    }
+
+    function viewMalp(filename) {
+      const rec = allRecordings.find(r => r.filename === filename);
+      if (!rec) return;
+      
+      const modal = document.getElementById('malpModal');
+      const list  = document.getElementById('malpList');
+      const empty = document.getElementById('malpEmpty');
+      
+      list.innerHTML = '';
+      const events = rec.malpracticeEvents || [];
+      
+      if (events.length === 0) {
+        empty.style.display = 'block';
+      } else {
+        empty.style.display = 'none';
+        list.innerHTML = events.map(ev => {
+          const time = new Date(ev.timestamp).toLocaleTimeString();
+          const isHigh = ev.severity === 'high' || ev.type === 'multiple_faces' || ev.type === 'no_face_detected';
+          const color = isHigh ? '#ef4444' : '#f59e0b';
+          const bg    = isHigh ? '#fef2f2' : '#fffbeb';
+          
+          return \`<div style="background:\${bg}; border-left:4px solid \${color}; padding:12px; border-radius:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <strong style="color:\${color}; font-size:13px; text-transform:uppercase;">\${ev.type.replace(/_/g, ' ')}</strong>
+              <span style="font-size:11px; color:#64748b;">\${time}</span>
+            </div>
+            <p style="margin:0; font-size:13px; color:#334155; line-height:1.4;">\${ev.description || 'No description available.'}</p>
+          </div>\`;
+        }).join('');
+      }
+      modal.style.display = 'flex';
+    }
+
+    function closeMalpModal() {
+      document.getElementById('malpModal').style.display = 'none';
+    }
+
+    async function deleteRec(filename) {
+      const confirmed = await showConfirm('Delete Recording', 'Are you sure you want to delete this recording?');
+      if (!confirmed) return;
+      const msg = document.getElementById('recMessage');
+      try {
+        const res  = await fetch('/api/proctor/recording/' + encodeURIComponent(filename), {
+          method: 'DELETE', credentials: 'include'
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          msg.className   = 'message success';
+          msg.textContent = 'Recording deleted';
+          await loadPageData();
+        } else {
+          throw new Error(data.message || 'Delete failed');
+        }
+      } catch (err) {
+        msg.className   = 'message error';
+        msg.textContent = 'Error: ' + err.message;
+      }
+    }
+  </script>
+`;
+
+export const classesContent = `
+  <div class="card">
+    <h2>Manage Classes</h2>
+    <div id="classesMessage" class="message"></div>
+    <form id="addClassForm" style="display: flex; gap: 12px; align-items: flex-end; margin-bottom: 32px;">
+      <div class="form-group" style="margin-bottom: 0; flex: 1;">
+        <label for="newClassName">New Class Name</label>
+        <input type="text" id="newClassName" placeholder="e.g. BCA-IV" required />
+      </div>
+      <button type="submit" class="btn btn-primary">Add Class</button>
+    </form>
+
+    <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Class Name</th>
+            <th>Settings & Actions</th>
+          </tr>
+        </thead>
+        <tbody id="classesTableBody">
+          <tr><td colspan="2" style="padding: 24px; text-align: center; color: var(--text-muted);">Loading classes...</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -1483,17 +2126,18 @@ export const classesContent = `
           const minutes = Math.floor(quizTime / 60);
           return \`
           <tr>
-            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+            <td>
               <strong>\${c}</strong>
             </td>
-            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <div style="display:flex; gap:4px; align-items:center;">
-                  <label style="margin:0; font-size:13px;">Quiz Time (min):</label>
-                  <input type="number" id="quizTime-\${c}" value="\${minutes}" min="1" max="60" style="width:60px; padding:4px; border:1px solid #ddd; border-radius:4px;" />
-                  <button data-class="\${c}" class="save-time-btn" style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px; pointer-events:auto; position:relative; z-index:1;">Save</button>
+            <td>
+              <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <label style="margin:0; font-size:13px; color:var(--text-muted);">Quiz Duration:</label>
+                  <input type="number" id="quizTime-\${c}" value="\${minutes}" min="1" max="60" style="width:70px; padding:6px; border:1px solid #ddd; border-radius:6px;" />
+                  <span style="font-size:13px; color:var(--text-muted);">min</span>
+                  <button data-class="\${c}" class="btn btn-primary btn-sm save-time-btn" style="padding: 6px 12px; font-size: 12px;">Save</button>
                 </div>
-                <button data-class="\${c}" class="delete-class-btn" style="background:#dc3545; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; pointer-events:auto; position:relative; z-index:1;">Delete</button>
+                <button data-class="\${c}" class="btn btn-danger btn-sm delete-class-btn" style="padding: 6px 12px; font-size: 12px;">Delete Class</button>
               </div>
             </td>
           </tr>\`;
@@ -1525,7 +2169,8 @@ export const classesContent = `
             if (!button || button.disabled) return;
             const cls = button.getAttribute('data-class');
             if (!cls) return;
-            if (!confirm('Delete class ' + cls + '? This does not remove existing data but will hide it from admins.')) return;
+            const confirmed = await showConfirm('Delete Class', 'Delete class ' + cls + '? This does not remove existing data but will hide it from admins.', '🗑️');
+            if (!confirmed) return;
             await deleteClass(cls);
           });
         });
@@ -1619,26 +2264,32 @@ export const classesContent = `
 `;
 
 export const addAdminContent = `
-  <div style="margin-bottom: 20px;">
-    <a href="/admin/overview" style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 4px; margin-bottom: 10px; display: inline-block;">← Back to Overview</a>
+  <div style="margin-bottom: 24px;">
+    <a href="/admin/overview" class="btn btn-outline">← Back to Overview</a>
   </div>
-  <h2>Add New Admin</h2>
-  <form id="addAdminForm">
-    <div class="form-group">
-      <label for="newAdminUsername">Username</label>
-      <input type="text" id="newAdminUsername" required />
-    </div>
-    <div class="form-group">
-      <label for="newAdminPassword">Password</label>
-      <input type="password" id="newAdminPassword" required />
-    </div>
-    <div class="form-group">
-      <label>Classes (select one or more)</label>
-      <div id="classCheckboxes" style="display: flex; gap: 16px; flex-wrap: nowrap; overflow-x: auto; padding: 4px 0;"></div>
-    </div>
-    <button type="submit">Add Admin</button>
-    <div id="addAdminMessage" class="message"></div>
-  </form>
+  
+  <div class="card" style="max-width: 600px;">
+    <h2>Add New Admin</h2>
+    <form id="addAdminForm">
+      <div class="form-group">
+        <label for="newAdminUsername">Username</label>
+        <input type="text" id="newAdminUsername" required placeholder="Choose a username" />
+      </div>
+      <div class="form-group">
+        <label for="newAdminPassword">Password</label>
+        <input type="password" id="newAdminPassword" required placeholder="Choose a secure password" />
+      </div>
+      <div class="form-group">
+        <label>Permitted Classes</label>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Select which classes this admin can manage.</p>
+        <div id="classCheckboxes" style="display: flex; gap: 12px; flex-wrap: wrap; padding: 4px 0;"></div>
+      </div>
+      <div style="margin-top: 12px;">
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Create Admin Account</button>
+      </div>
+      <div id="addAdminMessage" class="message"></div>
+    </form>
+  </div>
 
   <script>
     async function loadPageData() {
@@ -1656,13 +2307,17 @@ export const addAdminContent = `
         .filter(cb => cb.checked)
         .map(cb => cb.value);
       const msg = document.getElementById('addAdminMessage');
+      const btn = e.target.querySelector('button');
+      
       msg.textContent = '';
-
       if (classes.length === 0) {
         msg.className = 'message error';
         msg.textContent = 'Select at least one class';
         return;
       }
+
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
 
       try {
         const res = await fetch('/admin/add', {
@@ -1677,8 +2332,9 @@ export const addAdminContent = `
           data = await res.json();
         } catch (parseErr) {
           msg.className = 'message error';
-          msg.textContent = 'Server returned invalid response. Status: ' + res.status;
-          console.error('Response parse error:', parseErr);
+          msg.textContent = 'Server returned invalid response.';
+          btn.disabled = false;
+          btn.textContent = 'Create Admin Account';
           return;
         }
         
@@ -1695,7 +2351,9 @@ export const addAdminContent = `
       } catch (err) {
         msg.className = 'message error';
         msg.textContent = 'Network error: ' + err.message;
-        console.error('Request error:', err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create Admin Account';
       }
     }
   </script>
