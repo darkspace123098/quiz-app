@@ -122,7 +122,11 @@ class ProctorMonitor {
       console.log("[Proctor] Requesting camera + microphone…");
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
       });
 
       this.stream = stream;
@@ -190,24 +194,25 @@ class ProctorMonitor {
       this.timer = null;
     }
 
-    // Stop camera tracks
-    if (this.stream) {
-      this.stream.getTracks().forEach(t => t.stop());
-    }
-    if (this.videoElement) {
-      this.videoElement.srcObject = null;
-    }
-
-    // Stop recorder and wait for upload
+    // Stop recorder and wait for upload FIRST, to avoid truncating audio/video abruptly
     this._uploadPromise = new Promise(resolve => {
+      const finishAndStopTracks = async () => {
+        // Now that recorder is stopped, stop camera tracks
+        if (this.stream) {
+          this.stream.getTracks().forEach(t => t.stop());
+        }
+        if (this.videoElement) {
+          this.videoElement.srcObject = null;
+        }
+        await this._uploadRecording();
+        resolve();
+      };
+
       if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
-        this.mediaRecorder.onstop = async () => {
-          await this._uploadRecording();
-          resolve();
-        };
+        this.mediaRecorder.onstop = finishAndStopTracks;
         this.mediaRecorder.stop();
       } else {
-        this._uploadRecording().then(resolve);
+        finishAndStopTracks();
       }
     });
 

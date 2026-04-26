@@ -535,6 +535,8 @@ export function generateAdminPage(content, activeTab = 'overview') {
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
     .btn-outline:hover { background: var(--surface-hover); }
 
+    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 6px; white-space: nowrap; }
+
     .form-group { margin-bottom: 20px; }
     .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: var(--text-main); }
     
@@ -1897,7 +1899,7 @@ export const recordingsContent = `
 
   <div id="playerModal" class="modal" style="display:none; align-items:center; justify-content:center;">
     <div class="modal-content" style="max-width:960px; width:95%; position:relative; background:#1e293b; color:white;">
-      <span class="close" onclick="closePlayer()" style="color:white; opacity:0.8;">&times;</span>
+      <span class="close" onclick="closePlayer()" style="position:absolute; top:24px; right:24px; color:white; opacity:0.8; z-index:10;">&times;</span>
       <h3 id="playerTitle" style="margin-top:0; margin-bottom:20px; display:flex; align-items:center; gap:10px"></h3>
       <video id="proctorPlayer" controls playsinline style="width:100%; border-radius:12px; background:black; max-height:70vh;"></video>
       <div id="playerMeta" style="margin-top:16px; color:#94a3b8; font-size:14px; display:flex; justify-content:space-between; align-items:center;"></div>
@@ -1905,8 +1907,8 @@ export const recordingsContent = `
   </div>
 
   <div id="malpModal" class="modal" style="display:none; align-items:center; justify-content:center;">
-    <div class="modal-content" style="max-width:600px; width:95%; max-height:85vh; overflow-y:auto">
-      <span class="close" onclick="closeMalpModal()">&times;</span>
+    <div class="modal-content" style="max-width:600px; width:95%; max-height:85vh; overflow-y:auto; position:relative;">
+      <span class="close" onclick="closeMalpModal()" style="position:absolute; top:24px; right:24px; z-index:10;">&times;</span>
       <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px">
         <h3 style="margin:0">Malpractice Log</h3>
       </div>
