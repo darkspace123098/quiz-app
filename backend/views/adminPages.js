@@ -533,7 +533,7 @@ export function generateAdminPage(content, activeTab = 'overview') {
     .btn-danger:hover { background: #dc2626; }
 
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
-    .btn-outline:hover { background: #f8fafc; }
+    .btn-outline:hover { background: var(--surface-hover); }
 
     .form-group { margin-bottom: 20px; }
     .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: var(--text-main); }
@@ -656,13 +656,16 @@ export function generateAdminPage(content, activeTab = 'overview') {
       transform: translateY(-4px);
       box-shadow: var(--shadow-lg);
     }
+    [data-theme="dark"] .stat-card {
+      background: var(--bg);
+    }
     .stat-card h3 { margin: 0 0 12px 0; color: var(--text-muted); font-size: 14px; font-weight: 600; }
     .stat-card p { margin: 0; font-size: 32px; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em; }
     .stat-card .trend { font-size: 12px; margin-top: 8px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
     .trend-up { color: #10b981; }
 
     .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
-    .modal-content { background: white; margin: 50px auto; padding: 32px; border-radius: 16px; width: 90%; max-width: 600px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+    .modal-content { background: var(--surface); margin: 50px auto; padding: 32px; border-radius: 16px; width: 90%; max-width: 600px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
     .close { float: right; font-size: 24px; font-weight: bold; cursor: pointer; color: var(--text-muted); }
     
     .btn-edit { background: #3b82f6; color: white; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; margin-right: 4px; }
@@ -670,6 +673,8 @@ export function generateAdminPage(content, activeTab = 'overview') {
 
     /* Sticky fixes */
     .actions-cell { display: flex; gap: 8px; }
+
+
   </style>
 </head>
 <body>
@@ -850,7 +855,7 @@ export function generateAdminPage(content, activeTab = 'overview') {
       const box = document.getElementById('classCheckboxes');
       if (!box) return;
       box.innerHTML = classList.map(c => \`
-    <label style="display:flex; align-items:center; gap:8px; white-space: nowrap; padding: 8px 12px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">
+    <label style="display:flex; align-items:center; gap:8px; white-space: nowrap; padding: 8px 12px; background: var(--surface-hover); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; color: var(--text-main);">
       <input type="checkbox" class="admin-class-checkbox" value="\${c}" style="width: auto; margin: 0;" /> \${c}
         </label>\`).join('');
     }
