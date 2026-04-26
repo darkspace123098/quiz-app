@@ -148,16 +148,21 @@ class ProctorMonitor {
       // ── MediaRecorder (video + audio) ───────────────────────────────────
       try {
         this.recordedChunks = [];
-        const mimeType =
-          MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus") ? "video/webm;codecs=vp9,opus" :
-          MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus") ? "video/webm;codecs=vp8,opus" :
-          "video/webm";
+        
+        let options = { mimeType: 'video/webm;codecs=vp8,opus' };
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          options = { mimeType: 'video/webm;codecs=vp9,opus' };
+          if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            options = { mimeType: 'video/webm' };
+          }
+        }
 
-        this.mediaRecorder = new MediaRecorder(stream, { mimeType });
+        this.mediaRecorder = new MediaRecorder(stream, options);
         this.mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) this.recordedChunks.push(e.data); };
         this.mediaRecorder.start(1000);   // flush every 1 s
-        console.log(`[Proctor] Recording started (${mimeType})`);
-        this.emit("recording_started", { mimeType });
+        const actualMime = this.mediaRecorder.mimeType || "default";
+        console.log(`[Proctor] Recording started (${actualMime})`);
+        this.emit("recording_started", { mimeType: actualMime });
       } catch (recErr) {
         console.error("[Proctor] MediaRecorder error:", recErr);
       }

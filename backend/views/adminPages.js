@@ -9,6 +9,11 @@ export const adminLoginPage = `
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    // Apply theme synchronously to avoid flash of white
+    const st = localStorage.getItem('admin-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', st);
+  </script>
   <style>
     :root {
       --primary: #6366f1;
@@ -240,9 +245,8 @@ export const adminLoginPage = `
       themeIcon.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
     }
 
-    // Initialize theme
-    const savedTheme = localStorage.getItem('admin-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    setTheme(savedTheme);
+    // Sync icon on load based on what was set in head
+    themeIcon.innerHTML = html.getAttribute('data-theme') === 'dark' ? sunIcon : moonIcon;
 
     themeToggle.addEventListener('click', () => {
       const currentTheme = html.getAttribute('data-theme');
@@ -330,6 +334,11 @@ export function generateAdminPage(content, activeTab = 'overview') {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    // Apply theme synchronously to avoid flash of white
+    const st = localStorage.getItem('admin-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', st);
+  </script>
   <style>
     :root {
       --primary: #6366f1;
@@ -779,8 +788,10 @@ export function generateAdminPage(content, activeTab = 'overview') {
       }
     }
 
-    const savedTheme = localStorage.getItem('admin-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    setTheme(savedTheme);
+    // Sync icon on load based on what was set in head
+    if (themeIcon) {
+      themeIcon.setAttribute('data-lucide', html.getAttribute('data-theme') === 'dark' ? 'sun' : 'moon');
+    }
 
     if (themeToggle) {
       themeToggle.addEventListener('click', () => {
@@ -1899,7 +1910,7 @@ export const recordingsContent = `
 
   <div id="playerModal" class="modal" style="display:none; align-items:center; justify-content:center;">
     <div class="modal-content" style="max-width:960px; width:95%; position:relative; background:#1e293b; color:white;">
-      <span class="close" onclick="closePlayer()" style="position:absolute; top:24px; right:24px; color:white; opacity:0.8; z-index:10;">&times;</span>
+      <button onclick="closePlayer()" style="position:absolute; top:-20px; right:-20px; background:#ef4444; border:2px solid white; color:white; font-size:24px; font-weight:bold; width:48px; height:48px; border-radius:50%; cursor:pointer; z-index:100000; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition:all 0.2s;" onmouseover="this.style.transform='scale(1.1)'; this.style.background='#dc2626'" onmouseout="this.style.transform='scale(1)'; this.style.background='#ef4444'">&times;</button>
       <h3 id="playerTitle" style="margin-top:0; margin-bottom:20px; display:flex; align-items:center; gap:10px"></h3>
       <video id="proctorPlayer" controls playsinline style="width:100%; border-radius:12px; background:black; max-height:70vh;"></video>
       <div id="playerMeta" style="margin-top:16px; color:#94a3b8; font-size:14px; display:flex; justify-content:space-between; align-items:center;"></div>
@@ -1908,7 +1919,7 @@ export const recordingsContent = `
 
   <div id="malpModal" class="modal" style="display:none; align-items:center; justify-content:center;">
     <div class="modal-content" style="max-width:600px; width:95%; max-height:85vh; overflow-y:auto; position:relative;">
-      <span class="close" onclick="closeMalpModal()" style="position:absolute; top:24px; right:24px; z-index:10;">&times;</span>
+      <button onclick="closeMalpModal()" style="position:absolute; top:-20px; right:-20px; background:#ef4444; border:2px solid white; color:white; font-size:24px; font-weight:bold; width:48px; height:48px; border-radius:50%; cursor:pointer; z-index:100000; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition:all 0.2s;" onmouseover="this.style.transform='scale(1.1)'; this.style.background='#dc2626'" onmouseout="this.style.transform='scale(1)'; this.style.background='#ef4444'">&times;</button>
       <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px">
         <h3 style="margin:0">Malpractice Log</h3>
       </div>
