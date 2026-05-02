@@ -20,7 +20,7 @@ export const allowedOrigins = [
   "http://localhost:5000",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5000",
-  "https://online-quiz-407o.onrender.com",
+  "https://intelliquiz-fiag.onrender.com",
   "https://www.drfish.dev",
 ];
 
