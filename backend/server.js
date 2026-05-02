@@ -59,19 +59,17 @@ app.use("/api/quiz", quizRouter);
 app.use("/api/proctor", proctorRouter);
 app.use("/api/admin", adminRouter);
 
-app.get("/", (req, res) => {
-  res.json({ message: "Quiz App API Server" });
-});
-
-
 // Serve frontend static files
 const publicPath = path.join(__dirname, "..", "frontend-new", "dist");
 app.use(express.static(publicPath));
 
-// SPA Fallback: Serve index.html for any other GET requests (e.g. /admin/overview)
-// Express 5 requires RegExp for wildcards
-app.get(/\/.*/, (req, res) => {
-  res.sendFile(path.join(publicPath, "index.html"));
+// SPA Fallback: for all non-API GET requests serve index.html so React Router handles them
+app.use((req, res, next) => {
+  if (req.method === "GET" && !req.path.startsWith("/api")) {
+    res.sendFile(path.join(publicPath, "index.html"));
+  } else {
+    next();
+  }
 });
 
 
