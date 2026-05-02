@@ -5,6 +5,7 @@ import { useAdmin } from "../context/AdminContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import ThemeAwareLogo from "@/components/ThemeAwareLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -57,7 +58,7 @@ export const AdminLogin: React.FC = () => {
       <div className="w-full max-w-md relative z-10">
         <div className="bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-800 rounded-[32px] p-8 shadow-2xl shadow-indigo-500/5">
           <div className="flex flex-col items-center text-center mb-10">
-            <img src="/logo.png" alt="IntelliQuiz Logo" className="h-16 w-auto object-contain drop-shadow-xl mb-6" />
+            <ThemeAwareLogo className="h-16 w-auto object-contain drop-shadow-xl mb-6" />
             <h2 className="text-3xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
               Admin Portal
             </h2>

@@ -17,6 +17,7 @@ import {
 import { useAdmin } from "../context/AdminContext";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import ThemeAwareLogo from "@/components/ThemeAwareLogo";
 
 interface NavItemProps {
   to: string;
@@ -82,7 +83,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
           {/* Sidebar Header */}
           <div className="p-8 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="IntelliQuiz Logo" className="h-10 w-auto object-contain drop-shadow-md" />
+              <ThemeAwareLogo className="h-10 w-auto object-contain drop-shadow-md" />
               <span className="font-bold text-xl tracking-tight">Admin Panel</span>
             </div>
             <Button 
