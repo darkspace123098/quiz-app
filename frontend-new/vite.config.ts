@@ -21,8 +21,37 @@ function copyRedirects() {
   }
 }
 
+function createSpaRouteFiles() {
+  return {
+    name: 'create-spa-route-files',
+    closeBundle() {
+      const src = path.resolve(__dirname, 'dist', 'index.html')
+      const routes = [
+        'admin',
+        'admin/login',
+        'admin/overview',
+        'admin/contestants',
+        'admin/questions',
+        'admin/results',
+        'admin/recordings',
+        'admin/classes',
+        'admin/add',
+      ]
+
+      for (const route of routes) {
+        const destDir = path.resolve(__dirname, 'dist', route)
+        const dest = path.join(destDir, 'index.html')
+        if (!fs.existsSync(destDir)) {
+          fs.mkdirSync(destDir, { recursive: true })
+        }
+        fs.copyFileSync(src, dest)
+      }
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), copyRedirects()],
+  plugins: [react(), tailwindcss(), copyRedirects(), createSpaRouteFiles()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
