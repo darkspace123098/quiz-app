@@ -8,10 +8,14 @@ function copyRedirects() {
   return {
     name: 'copy-redirects',
     closeBundle() {
-      const src = path.resolve(__dirname, 'public', '_redirects')
-      const dest = path.resolve(__dirname, 'dist', '_redirects')
-      if (fs.existsSync(src)) {
-        fs.copyFileSync(src, dest)
+      const redirects = ["_redirects", "redirects"]
+
+      for (const fileName of redirects) {
+        const src = path.resolve(__dirname, 'public', fileName)
+        const dest = path.resolve(__dirname, 'dist', fileName)
+        if (fs.existsSync(src)) {
+          fs.copyFileSync(src, dest)
+        }
       }
     },
   }
