@@ -1,6 +1,8 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, XCircle, AlertCircle } from "lucide-react"
+import { CheckCircle2, XCircle, AlertCircle, Download } from "lucide-react"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 
 export interface ResultData {
   status: string
@@ -129,7 +131,61 @@ export function ResultScreen({ data, onRestart }: ResultScreenProps) {
               )
             })}
           </CardContent>
-          <div className="p-3 sm:p-6 border-t border-slate-100 dark:border-slate-800">
+          <div className="p-3 sm:p-6 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <Button 
+              onClick={() => {
+                const doc = new jsPDF();
+                doc.setFontSize(22);
+                doc.text("Quiz Result Report", 105, 20, { align: "center" });
+                
+                doc.setFontSize(12);
+                doc.text(`Student Name: ${data.name}`, 20, 40);
+                doc.text(`Date: ${new Date().toLocaleString()}`, 20, 50);
+                
+                autoTable(doc, {
+                  startY: 60,
+                  head: [['Category', 'Details']],
+                  body: [
+                    ['Score', `${data.score} / ${data.totalQuestions}`],
+                    ['Percentage', `${percentage}%`],
+                    ['Correct Answers', correctCount],
+                    ['Incorrect Answers', incorrectCount],
+                    ['Unanswered', unansweredCount]
+                  ],
+                  theme: 'striped',
+                  headStyles: { fillColor: [79, 70, 229] }
+                });
+
+                // Detailed question breakdown
+                const tableBody = data.correctAnswers.map((item, index) => {
+                  const status = item.userAnswer === item.correctAnswer ? "Correct" : (!item.userAnswer || item.userAnswer === "Not answered" ? "Unanswered" : "Incorrect");
+                  return [
+                    index + 1,
+                    item.questionText.substring(0, 40) + (item.questionText.length > 40 ? "..." : ""),
+                    item.correctAnswer,
+                    item.userAnswer || "Not answered",
+                    status
+                  ];
+                });
+
+                autoTable(doc, {
+                  startY: (doc as any).lastAutoTable.finalY + 15,
+                  head: [['#', 'Question', 'Correct Answer', 'Your Answer', 'Status']],
+                  body: tableBody,
+                  theme: 'striped',
+                  styles: { fontSize: 8 },
+                  headStyles: { fillColor: [79, 70, 229] },
+                  columnStyles: { 0: { cellWidth: 10 }, 4: { cellWidth: 25 } }
+                });
+
+                doc.save(`${data.name.replace(/\s+/g, '_')}_Result.pdf`);
+              }}
+              variant="outline"
+              className="w-full text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 text-sm sm:text-base py-2 sm:py-2.5 font-semibold gap-2"
+            >
+              <Download size={18} />
+              Download Result
+            </Button>
             <Button 
               onClick={onRestart} 
               className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 dark:text-slate-900 text-sm sm:text-base py-2 sm:py-2.5 font-semibold"
