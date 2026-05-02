@@ -7,17 +7,6 @@ import ClassModel from "../models/Class.js";
 import { requireAdmin } from "../middleware/auth.js";
 import { getValidClasses } from "../utils/adminHelpers.js";
 import { SUPERADMIN_USERNAME, SUPERADMIN_PASSWORD } from "../config/constants.js";
-import {
-  adminLoginPage,
-  generateAdminPage,
-  overviewContent,
-  contestantsContent,
-  questionsContent,
-  resultsContent,
-  classesContent,
-  addAdminContent,
-  recordingsContent
-} from "../views/adminPages.js";
 
 const router = express.Router();
 
@@ -35,13 +24,6 @@ router.get("/debug/config", (req, res) => {
   });
 });
 
-// Login routes
-router.get("/login", (req, res) => {
-  if (req.session && req.session.adminId) {
-    return res.redirect("/admin/overview");
-  }
-  res.send(adminLoginPage);
-});
 
 router.post("/login", async (req, res) => {
   try {
@@ -213,43 +195,9 @@ router.post("/add", requireAdmin, async (req, res) => {
   }
 });
 
-// Page routes
+// Page routes (Disabled as we migrated to React)
 router.get("/", requireAdmin, (req, res) => {
-  res.redirect("/admin/overview");
-});
-
-router.get("/overview", requireAdmin, (req, res) => {
-  res.send(generateAdminPage(overviewContent, 'overview'));
-});
-
-router.get("/contestants", requireAdmin, (req, res) => {
-  res.send(generateAdminPage(contestantsContent, 'contestants'));
-});
-
-router.get("/questions", requireAdmin, (req, res) => {
-  res.send(generateAdminPage(questionsContent, 'questions'));
-});
-
-router.get("/results", requireAdmin, (req, res) => {
-  res.send(generateAdminPage(resultsContent, 'results'));
-});
-
-router.get("/recordings", requireAdmin, (req, res) => {
-  res.send(generateAdminPage(recordingsContent, 'recordings'));
-});
-
-router.get("/classes", requireAdmin, (req, res) => {
-  if (req.session.adminRole !== "superadmin") {
-    return res.redirect("/admin/overview");
-  }
-  res.send(generateAdminPage(classesContent, 'classes'));
-});
-
-router.get("/add", requireAdmin, (req, res) => {
-  if (req.session.adminRole !== "superadmin") {
-    return res.redirect("/admin/overview");
-  }
-  res.send(generateAdminPage(addAdminContent, 'add'));
+  res.json({ message: "Admin API operational" });
 });
 
 // Results API routes
@@ -261,10 +209,19 @@ router.get("/results/data", requireAdmin, async (req, res) => {
       filter.className = { $in: classes };
     }
 
-    const results = await Result.find(filter)
+    const resultsRaw = await Result.find(filter)
       .sort({ submittedAt: -1, _id: -1 })
       .limit(200)
       .lean();
+
+    // Attach totalQuestions count for each unique quizCode + className
+    const results = await Promise.all(resultsRaw.map(async (r) => {
+      const totalQuestions = await Question.countDocuments({ 
+        quizCode: r.quizCode, 
+        className: r.className 
+      });
+      return { ...r, totalQuestions: totalQuestions || 1 }; // Default to 1 to avoid div by zero
+    }));
 
     res.json({ status: "success", results });
   } catch (err) {
@@ -483,6 +440,250 @@ router.get("/questions/data", requireAdmin, async (req, res) => {
   } catch (err) {
     console.error("Error fetching questions:", err);
     res.status(500).json({ status: "error", message: "Server error fetching questions" });
+  }
+});
+
+// Contestants Management
+router.post("/contestants", requireAdmin, async (req, res) => {
+  try {
+    const { name, usn, className, quizCode, quizPassword, contestants: bulkContestants } = req.body;
+    
+    // Bulk Import Case
+    if (bulkContestants && Array.isArray(bulkContestants)) {
+      const validClasses = await getValidClasses();
+      const results = { success: 0, failed: 0, errors: [] };
+
+      const toInsert = [];
+      for (const c of bulkContestants) {
+        if (!c.name || !c.usn || !c.className || !c.quizCode || !c.quizPassword) {
+          results.failed++;
+          results.errors.push(`Missing fields for ${c.usn || "unknown"}`);
+          continue;
+        }
+
+        if (!validClasses.includes(c.className)) {
+          results.failed++;
+          results.errors.push(`Invalid class for ${c.usn}`);
+          continue;
+        }
+
+        toInsert.push({
+          name: c.name.trim(),
+          usn: c.usn.trim().toUpperCase(),
+          className: c.className.trim(),
+          quizCode: c.quizCode.trim(),
+          quizPassword: c.quizPassword.trim()
+        });
+      }
+
+      if (toInsert.length > 0) {
+        try {
+          await Contestant.insertMany(toInsert, { ordered: false });
+          results.success = toInsert.length;
+        } catch (err) {
+          if (err.code === 11000) {
+            results.success = err.insertedDocs?.length || 0;
+            results.failed += (toInsert.length - results.success);
+            results.errors.push("Duplicate USNs were skipped");
+          } else {
+            throw err;
+          }
+        }
+      }
+
+      return res.json({ status: "success", message: `Imported ${results.success} students`, results });
+    }
+
+    // Single Add Case
+    if (!name || !usn || !className || !quizCode || !quizPassword) {
+      return res.status(400).json({ status: "error", message: "All fields are required" });
+    }
+
+    const validClasses = await getValidClasses();
+    if (!validClasses.includes(className.trim())) {
+      return res.status(400).json({ status: "error", message: "Invalid class name" });
+    }
+
+    const existing = await Contestant.findOne({ usn: usn.trim().toUpperCase() });
+    if (existing) {
+      return res.status(400).json({ status: "error", message: "USN already exists" });
+    }
+
+    const contestant = await Contestant.create({
+      name: name.trim(),
+      usn: usn.trim().toUpperCase(),
+      className: className.trim(),
+      quizCode: quizCode.trim(),
+      quizPassword: quizPassword.trim()
+    });
+
+    res.status(201).json({ status: "success", message: "Contestant registered", contestant });
+  } catch (err) {
+    console.error("Error adding contestant:", err);
+    res.status(500).json({ status: "error", message: "Server error" });
+  }
+});
+
+router.put("/contestants/:id", requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, usn, className, quizCode, quizPassword } = req.body;
+    
+    const contestant = await Contestant.findById(id);
+    if (!contestant) return res.status(404).json({ status: "error", message: "Not found" });
+
+    if (req.session.adminRole !== "superadmin") {
+      const allowed = req.session.adminClasses || [];
+      if (!allowed.includes(contestant.className)) {
+        return res.status(403).json({ status: "error", message: "Not permitted" });
+      }
+    }
+
+    if (name) contestant.name = name.trim();
+    if (usn) contestant.usn = usn.trim().toUpperCase();
+    if (className) contestant.className = className.trim();
+    if (quizCode) contestant.quizCode = quizCode.trim();
+    if (quizPassword) contestant.quizPassword = quizPassword.trim();
+
+    await contestant.save();
+    res.json({ status: "success", message: "Contestant updated", contestant });
+  } catch (err) {
+    if (err.code === 11000) return res.status(400).json({ status: "error", message: "USN already exists" });
+    res.status(500).json({ status: "error", message: "Server error" });
+  }
+});
+
+router.delete("/contestants/:id", requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const contestant = await Contestant.findById(id);
+    if (!contestant) return res.status(404).json({ status: "error", message: "Not found" });
+
+    if (req.session.adminRole !== "superadmin") {
+      const allowed = req.session.adminClasses || [];
+      if (!allowed.includes(contestant.className)) {
+        return res.status(403).json({ status: "error", message: "Not permitted" });
+      }
+    }
+
+    await Contestant.deleteOne({ _id: id });
+    res.json({ status: "success", message: "Contestant deleted" });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: "Server error" });
+  }
+});
+
+// Questions Management
+router.post("/questions", requireAdmin, async (req, res) => {
+  try {
+    const { questionText, options, correctAnswer, className, quizCode, questions: bulkQuestions } = req.body;
+    
+    // Bulk Import Case
+    if (bulkQuestions && Array.isArray(bulkQuestions)) {
+      const validClasses = await getValidClasses();
+      const results = { success: 0, failed: 0, errors: [] };
+
+      const toInsert = [];
+      for (const q of bulkQuestions) {
+        if (!q.questionText || !q.options || !q.correctAnswer || !q.className || !q.quizCode) {
+          results.failed++;
+          results.errors.push(`Missing fields for ${q.questionText?.substring(0, 20)}...`);
+          continue;
+        }
+
+        if (!validClasses.includes(q.className)) {
+          results.failed++;
+          results.errors.push(`Invalid class for question ${q.questionText?.substring(0, 20)}`);
+          continue;
+        }
+
+        toInsert.push({
+          questionText: q.questionText.trim(),
+          options: Array.isArray(q.options) ? q.options.map(o => o.trim()) : [],
+          correctAnswer: q.correctAnswer.trim(),
+          className: q.className.trim(),
+          quizCode: q.quizCode.trim()
+        });
+      }
+
+      if (toInsert.length > 0) {
+        await Question.insertMany(toInsert, { ordered: false });
+        results.success = toInsert.length;
+      }
+
+      return res.json({ status: "success", message: `Imported ${results.success} questions`, results });
+    }
+
+    // Single Add Case
+    if (!questionText || !options || !correctAnswer || !className || !quizCode) {
+      return res.status(400).json({ status: "error", message: "All fields are required" });
+    }
+
+    const validClasses = await getValidClasses();
+    if (!validClasses.includes(className.trim())) {
+      return res.status(400).json({ status: "error", message: "Invalid class name" });
+    }
+
+    const question = await Question.create({
+      questionText: questionText.trim(),
+      options: options.map(o => o.trim()),
+      correctAnswer: correctAnswer.trim(),
+      className: className.trim(),
+      quizCode: quizCode.trim()
+    });
+
+    res.status(201).json({ status: "success", message: "Question added", question });
+  } catch (err) {
+    console.error("Error adding question:", err);
+    res.status(500).json({ status: "error", message: "Server error" });
+  }
+});
+
+router.put("/questions/:id", requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { questionText, options, correctAnswer, className, quizCode } = req.body;
+    
+    const question = await Question.findById(id);
+    if (!question) return res.status(404).json({ status: "error", message: "Not found" });
+
+    if (req.session.adminRole !== "superadmin") {
+      const allowed = req.session.adminClasses || [];
+      if (!allowed.includes(question.className)) {
+        return res.status(403).json({ status: "error", message: "Not permitted" });
+      }
+    }
+
+    if (questionText) question.questionText = questionText.trim();
+    if (options && Array.isArray(options)) question.options = options.map(o => o.trim());
+    if (correctAnswer) question.correctAnswer = correctAnswer.trim();
+    if (className) question.className = className.trim();
+    if (quizCode) question.quizCode = quizCode.trim();
+
+    await question.save();
+    res.json({ status: "success", message: "Question updated", question });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: "Server error" });
+  }
+});
+
+router.delete("/questions/:id", requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const question = await Question.findById(id);
+    if (!question) return res.status(404).json({ status: "error", message: "Not found" });
+
+    if (req.session.adminRole !== "superadmin") {
+      const allowed = req.session.adminClasses || [];
+      if (!allowed.includes(question.className)) {
+        return res.status(403).json({ status: "error", message: "Not permitted" });
+      }
+    }
+
+    await Question.deleteOne({ _id: id });
+    res.json({ status: "success", message: "Question deleted" });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: "Server error" });
   }
 });
 

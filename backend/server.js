@@ -57,16 +57,23 @@ app.use(
 
 app.use("/api/quiz", quizRouter);
 app.use("/api/proctor", proctorRouter);
-app.use("/admin", adminRouter);
+app.use("/api/admin", adminRouter);
 
 app.get("/", (req, res) => {
-  res.redirect("/admin/login");
+  res.json({ message: "Quiz App API Server" });
 });
 
 
-// Serve frontend static files (after admin routes to avoid conflicts)
-const publicPath = path.join(__dirname, "..", "frontend", "public");
+// Serve frontend static files
+const publicPath = path.join(__dirname, "..", "frontend-new", "dist");
 app.use(express.static(publicPath));
+
+// SPA Fallback: Serve index.html for any other GET requests (e.g. /admin/overview)
+// Express 5 requires RegExp for wildcards
+app.get(/\/.*/, (req, res) => {
+  res.sendFile(path.join(publicPath, "index.html"));
+});
+
 
 // Clean connection without deprecated options
 mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/quiz")
