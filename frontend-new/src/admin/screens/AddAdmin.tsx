@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { apiFetch } from "@/lib/api";
 
 export const AddAdmin: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -18,7 +19,7 @@ export const AddAdmin: React.FC = () => {
   useEffect(() => {
     const fetchClasses = async () => {
       try {
-        const res = await fetch("/api/admin/classes/data");
+        const res = await apiFetch("/api/admin/classes/data");
         if (res.ok) {
           const data = await res.json();
           setAvailableClasses(data.classes || []);
@@ -39,7 +40,7 @@ export const AddAdmin: React.FC = () => {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/add", {
+      const res = await apiFetch("/api/admin/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, classes: selectedClasses })

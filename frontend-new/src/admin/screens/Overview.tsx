@@ -3,6 +3,7 @@ import { Users, HelpCircle, Award, Layers, TrendingUp, Plus } from "lucide-react
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { apiFetch } from "@/lib/api";
 
 interface StatsData {
   totalClasses: number;
@@ -60,7 +61,7 @@ export const Overview: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch("/api/admin/data");
+        const res = await apiFetch("/api/admin/data");
         if (res.ok) {
           const result = await res.json();
           setStats(result.data);

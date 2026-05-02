@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { apiFetch } from "@/lib/api";
 
 interface Contestant {
   _id: string;
@@ -37,7 +38,7 @@ export const Contestants: React.FC = () => {
 
   const fetchContestants = async () => {
     try {
-      const res = await fetch("/api/admin/contestants/data");
+      const res = await apiFetch("/api/admin/contestants/data");
       if (res.ok) {
         const data = await res.json();
         setContestants(data.contestants);
@@ -51,7 +52,7 @@ export const Contestants: React.FC = () => {
 
   const fetchClasses = async () => {
     try {
-      const res = await fetch("/api/admin/classes/data");
+      const res = await apiFetch("/api/admin/classes/data");
       if (res.ok) {
         const data = await res.json();
         setClasses(data.classes);
@@ -72,7 +73,7 @@ export const Contestants: React.FC = () => {
       const url = editingId ? `/api/admin/contestants/${editingId}` : "/api/admin/contestants";
       const method = editingId ? "PUT" : "POST";
       
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
@@ -108,7 +109,7 @@ export const Contestants: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this contestant?")) return;
     try {
-      const res = await fetch(`/api/admin/contestants/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/admin/contestants/${id}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("Contestant deleted");
         fetchContestants();
@@ -138,7 +139,7 @@ export const Contestants: React.FC = () => {
     reader.onload = async (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
-        const res = await fetch("/api/admin/contestants", {
+        const res = await apiFetch("/api/admin/contestants", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ contestants: Array.isArray(json) ? json : [json] })

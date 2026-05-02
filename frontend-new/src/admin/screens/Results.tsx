@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { apiFetch } from "@/lib/api";
 
 interface Result {
   _id: string;
@@ -24,7 +25,7 @@ export const Results: React.FC = () => {
 
   const fetchResults = async () => {
     try {
-      const res = await fetch("/api/admin/results/data");
+      const res = await apiFetch("/api/admin/results/data");
       if (res.ok) {
         const data = await res.json();
         setResults(data.results);
@@ -43,7 +44,7 @@ export const Results: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this result?")) return;
     try {
-      const res = await fetch(`/api/admin/results/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/admin/results/${id}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("Result deleted");
         fetchResults();

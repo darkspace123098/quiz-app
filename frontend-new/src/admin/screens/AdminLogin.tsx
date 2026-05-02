@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import ThemeAwareLogo from "@/components/ThemeAwareLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Eye, EyeOff } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 export const AdminLogin: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -22,10 +23,9 @@ export const AdminLogin: React.FC = () => {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/admin/login", {
+      const res = await apiFetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ username, password }),
       });
 

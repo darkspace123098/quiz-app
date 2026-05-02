@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
 
 interface AdminData {
   username: string;
@@ -22,9 +23,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const checkAuth = async () => {
     try {
-      const res = await fetch("/api/admin/role", {
-        credentials: "include",
-      });
+      const res = await apiFetch("/api/admin/role");
       if (res.ok) {
         const data = await res.json();
         setAdmin(data);
@@ -52,10 +51,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const logout = async () => {
     try {
-      await fetch("/api/admin/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+      await apiFetch("/api/admin/logout", { method: "POST" });
       setAdmin(null);
       window.location.href = "/admin/login";
     } catch (err) {

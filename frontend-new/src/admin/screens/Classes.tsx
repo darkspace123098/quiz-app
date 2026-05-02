@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { apiFetch } from "@/lib/api";
 
 export const Classes: React.FC = () => {
   const [classes, setClasses] = useState<string[]>([]);
@@ -14,7 +15,7 @@ export const Classes: React.FC = () => {
 
   const fetchClasses = async () => {
     try {
-      const res = await fetch("/api/admin/classes/data");
+      const res = await apiFetch("/api/admin/classes/data");
       if (res.ok) {
         const data = await res.json();
         setClasses(data.classes || []);
@@ -34,7 +35,7 @@ export const Classes: React.FC = () => {
     e.preventDefault();
     if (!newClassName.trim()) return;
     try {
-      const res = await fetch("/api/admin/classes/data", {
+      const res = await apiFetch("/api/admin/classes/data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newClassName.trim() })
@@ -54,7 +55,7 @@ export const Classes: React.FC = () => {
   const handleDeleteClass = async (name: string) => {
     if (!confirm(`Are you sure? This will also remove management access for this class from all admins.`)) return;
     try {
-      const res = await fetch(`/api/admin/classes/data/${encodeURIComponent(name)}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/admin/classes/data/${encodeURIComponent(name)}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("Class deleted");
         fetchClasses();
@@ -66,7 +67,7 @@ export const Classes: React.FC = () => {
 
   const fetchQuizTime = async (name: string) => {
     try {
-      const res = await fetch(`/api/admin/classes/${encodeURIComponent(name)}/time`);
+      const res = await apiFetch(`/api/admin/classes/${encodeURIComponent(name)}/time`);
       if (res.ok) {
         const data = await res.json();
         setEditingTime({ name, time: data.quizTime });
@@ -79,7 +80,7 @@ export const Classes: React.FC = () => {
   const handleUpdateTime = async () => {
     if (!editingTime) return;
     try {
-      const res = await fetch(`/api/admin/classes/${encodeURIComponent(editingTime.name)}/time`, {
+      const res = await apiFetch(`/api/admin/classes/${encodeURIComponent(editingTime.name)}/time`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quizTime: editingTime.time })

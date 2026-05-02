@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { apiFetch } from "@/lib/api";
 
 interface Recording {
   filename: string;
@@ -23,7 +24,7 @@ export const Recordings: React.FC = () => {
 
   const fetchRecordings = async () => {
     try {
-      const res = await fetch("/api/proctor/list");
+      const res = await apiFetch("/api/proctor/list");
       if (res.ok) {
         const data = await res.json();
         setRecordings(data.recordings || []);
@@ -42,7 +43,7 @@ export const Recordings: React.FC = () => {
   const handleDelete = async (filename: string) => {
     if (!confirm("Delete this recording?")) return;
     try {
-      const res = await fetch(`/api/proctor/recording/${filename}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/proctor/recording/${filename}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("Recording deleted");
         fetchRecordings();

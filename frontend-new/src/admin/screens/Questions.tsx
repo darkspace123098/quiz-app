@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { apiFetch } from "@/lib/api";
 
 interface Question {
   _id: string;
@@ -36,7 +37,7 @@ export const Questions: React.FC = () => {
 
   const fetchQuestions = async () => {
     try {
-      const res = await fetch("/api/admin/questions/data");
+      const res = await apiFetch("/api/admin/questions/data");
       if (res.ok) {
         const data = await res.json();
         setQuestions(data.questions);
@@ -50,7 +51,7 @@ export const Questions: React.FC = () => {
 
   const fetchClasses = async () => {
     try {
-      const res = await fetch("/api/admin/classes/data");
+      const res = await apiFetch("/api/admin/classes/data");
       if (res.ok) {
         const data = await res.json();
         setClasses(data.classes);
@@ -71,7 +72,7 @@ export const Questions: React.FC = () => {
       const url = editingId ? `/api/admin/questions/${editingId}` : "/api/admin/questions";
       const method = editingId ? "PUT" : "POST";
 
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -119,7 +120,7 @@ export const Questions: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this question?")) return;
     try {
-      const res = await fetch(`/api/admin/questions/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/admin/questions/${id}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("Question deleted");
         fetchQuestions();
@@ -149,7 +150,7 @@ export const Questions: React.FC = () => {
     reader.onload = async (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
-        const res = await fetch("/api/admin/questions", {
+        const res = await apiFetch("/api/admin/questions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ questions: Array.isArray(json) ? json : [json] })
