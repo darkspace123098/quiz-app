@@ -11,7 +11,7 @@ interface AdminContextType {
   loading: boolean;
   login: (data: AdminData) => void;
   logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
+  checkAuth: () => Promise<AdminData | null>;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -22,16 +22,21 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const checkAuth = async () => {
     try {
-      const res = await fetch("/api/admin/role");
+      const res = await fetch("/api/admin/role", {
+        credentials: "include",
+      });
       if (res.ok) {
         const data = await res.json();
         setAdmin(data);
+        return data;
       } else {
         setAdmin(null);
+        return null;
       }
     } catch (err) {
       console.error("Auth check failed:", err);
       setAdmin(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -47,7 +52,10 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const logout = async () => {
     try {
-      await fetch("/api/admin/logout", { method: "POST" });
+      await fetch("/api/admin/logout", {
+        method: "POST",
+        credentials: "include",
+      });
       setAdmin(null);
       window.location.href = "/admin/login";
     } catch (err) {

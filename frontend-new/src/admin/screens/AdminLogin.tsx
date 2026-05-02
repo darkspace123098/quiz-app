@@ -25,13 +25,18 @@ export const AdminLogin: React.FC = () => {
       const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ username, password }),
       });
 
       if (res.ok) {
-        await checkAuth();
-        toast.success("Login successful!");
-        navigate("/admin/overview");
+        const currentAdmin = await checkAuth();
+        if (currentAdmin) {
+          toast.success("Login successful!");
+          navigate("/admin/overview");
+        } else {
+          toast.error("Auth session not established. Please refresh and try again.");
+        }
       } else {
         const data = await res.json();
         toast.error(data.message || "Invalid credentials");
