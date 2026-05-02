@@ -26,7 +26,7 @@ export function ResultScreen({ data, onRestart }: ResultScreenProps) {
   if (!data || data.status === "error") {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 p-2 sm:p-4">
-        <Card className="w-full max-w-xs sm:max-w-md bg-gradient-to-br from-red-50 to-rose-100 dark:from-red-950/50 dark:to-rose-900/50 border-red-200 dark:border-red-900">
+        <Card className="w-full max-w-[95vw] sm:max-w-md bg-gradient-to-br from-red-50 to-rose-100 dark:from-red-950/50 dark:to-rose-900/50 border-red-200 dark:border-red-900">
           <CardHeader>
             <CardTitle className="text-red-700 dark:text-red-400 flex items-center gap-2 text-lg sm:text-xl">
               <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6" /> Error
@@ -50,7 +50,7 @@ export function ResultScreen({ data, onRestart }: ResultScreenProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-2 sm:p-4 py-8 sm:py-12 flex justify-center w-full">
-      <div className="w-full max-w-xs sm:max-w-2xl lg:max-w-4xl space-y-4 sm:space-y-6 animate-in slide-in-from-bottom-8 duration-500">
+      <div className="w-full max-w-[95vw] sm:max-w-2xl lg:max-w-4xl space-y-4 sm:space-y-6 animate-in slide-in-from-bottom-8 duration-500">
         <Card className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-none shadow-2xl">
           <CardHeader className="text-center pb-2 px-3 sm:px-6">
             <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold opacity-90 break-words">

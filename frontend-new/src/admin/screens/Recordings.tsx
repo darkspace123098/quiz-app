@@ -104,7 +104,7 @@ export const Recordings: React.FC = () => {
                       {r.malpracticeCount} Events
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                  <div className="absolute inset-0 bg-black/40 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 backdrop-blur-[2px]">
                     <Button 
                       className="rounded-full bg-white text-slate-900 hover:bg-slate-100"
                       onClick={() => window.open(`/api/proctor/stream/${r.filename}`, '_blank')}

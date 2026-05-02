@@ -80,11 +80,19 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
       `}>
         <div className="h-full flex flex-col">
           {/* Sidebar Header */}
-          <div className="p-8 flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-500/20">
-              Q
+          <div className="p-8 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src="/logo.png" alt="IntelliQuiz Logo" className="h-10 w-auto object-contain drop-shadow-md" />
+              <span className="font-bold text-xl tracking-tight">Admin Panel</span>
             </div>
-            <span className="font-bold text-xl tracking-tight">Admin Panel</span>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="lg:hidden -mr-4 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100" 
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <X size={20} />
+            </Button>
           </div>
 
           {/* Navigation */}

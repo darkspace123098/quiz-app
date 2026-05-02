@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-
+import { Eye, EyeOff } from "lucide-react"
 interface StartScreenProps {
   onStart: (usn: string, quizCode: string, password: string) => void
 }
@@ -14,6 +14,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
   const [usn, setUsn] = useState("")
   const [quizCode, setQuizCode] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [agree, setAgree] = useState(false)
 
   const handleStart = () => {
@@ -30,6 +31,9 @@ export function StartScreen({ onStart }: StartScreenProps) {
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-slate-900 dark:to-slate-800 p-2 sm:p-4 w-full">
       <Card className="w-full max-w-xs sm:max-w-lg shadow-2xl border-none">
         <CardHeader className="text-center pb-2 px-3 sm:px-6">
+          <div className="flex justify-center mb-4">
+            <img src="/logo.png" alt="IntelliQuiz Logo" className="h-20 w-auto object-contain drop-shadow-lg" />
+          </div>
           <CardTitle className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
             Login to Start Quiz
           </CardTitle>
@@ -90,14 +94,23 @@ export function StartScreen({ onStart }: StartScreenProps) {
 
             <div className="space-y-1.5 sm:space-y-2 p-3 sm:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
               <Label htmlFor="password" className="text-xs sm:text-sm font-semibold">Contestant Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Password given by admin"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="transition-all focus-visible:ring-indigo-500 bg-white dark:bg-slate-900 text-sm"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password given by admin"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="transition-all focus-visible:ring-indigo-500 bg-white dark:bg-slate-900 text-sm pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 This password is assigned by admin for this contestant only.
               </p>
