@@ -20,7 +20,14 @@ const allowedOrigins = [
   "http://localhost:5000",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5000",
+  "https://www.drfish.dev",
+  "https://intelliquiz-frontend.onrender.com",
 ];
+
+const frontendOrigin = process.env.FRONTEND_URL;
+if (frontendOrigin) {
+  allowedOrigins.push(frontendOrigin);
+}
 
 // Resolve __dirname in ES module context
 const __filename = fileURLToPath(import.meta.url);
@@ -36,7 +43,8 @@ app.use(cors({
       callback(new Error("Not allowed by CORS"));
     }
   },
-  credentials: true
+  credentials: true,
+  exposedHeaders: ["Set-Cookie"],
 }));
 
 app.use(json({ limit: "50mb" }));
@@ -49,9 +57,9 @@ app.use(
     cookie: {
       maxAge: 60 * 60 * 1000, // 1 hour
       httpOnly: true,
-      sameSite: "lax",
-      secure: false
-    }
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production",
+    },
   })
 );
 
