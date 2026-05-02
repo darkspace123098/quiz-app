@@ -75,18 +75,17 @@ app.get(/\/.*/, (req, res) => {
 });
 
 
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✓ Server listening on port ${PORT}`);
+});
+
 // Clean connection without deprecated options
 mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/quiz")
   .then(() => {
     console.log("✓ Connected to MongoDB successfully");
-
-    // Start server after MongoDB connection
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-      console.log(`✓ Admin panel available at http://localhost:${PORT}/admin/login`);
-    });
   })
   .catch((err) => {
     console.error("✗ MongoDB connection failed:", err.message);
-    process.exit(1);
+    // Don't exit process immediately, let the server return 500s or try to reconnect
   });
