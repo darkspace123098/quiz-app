@@ -21,7 +21,8 @@ export const allowedOrigins = [
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5000",
   "https://intelliquiz-fiag.onrender.com",
-  "https://intelliquiz-frontend.onrender.com/",
+  "https://intelliquiz-frontend.onrender.com",
   "https://www.drfish.dev",
+  "https://drfish.dev",
 ];
 

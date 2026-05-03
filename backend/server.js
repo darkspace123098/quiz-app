@@ -15,14 +15,7 @@ import ClassModel from "./models/Class.js";
 import quizRouter from "./routes/quiz.js";
 import proctorRouter from "./routes/proctor.js";
 import adminRouter from "./routes/admin.js";
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:5000",
-  "http://127.0.0.1:5173",
-  "http://127.0.0.1:5000",
-  "https://www.drfish.dev",
-  "https://intelliquiz-frontend.onrender.com",
-];
+import { allowedOrigins } from "./config/constants.js";
 
 const frontendOrigin = process.env.FRONTEND_URL;
 if (frontendOrigin) {
@@ -34,12 +27,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set("trust proxy", 1);
 
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.log("CORS blocked for origin:", origin);
       callback(new Error("Not allowed by CORS"));
     }
   },
