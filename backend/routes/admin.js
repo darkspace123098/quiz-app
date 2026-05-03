@@ -38,40 +38,56 @@ router.post("/login", async (req, res) => {
     const trimmedUsername = username.trim();
     const trimmedPassword = password;
 
-    // Debug logging (remove in production)
-    console.log("Login attempt:", {
-      username: trimmedUsername,
-      expectedUsername: SUPERADMIN_USERNAME,
-      passwordProvided: !!trimmedPassword,
-      expectedPasswordSet: !!SUPERADMIN_PASSWORD
-    });
-
-    const validClasses = await getValidClasses();
-    
     // Check superadmin credentials (exact match, case-sensitive)
     if (trimmedUsername === SUPERADMIN_USERNAME && trimmedPassword === SUPERADMIN_PASSWORD) {
+      console.log("Superadmin login detected");
+      const validClasses = await getValidClasses();
       req.session.adminId = "superadmin";
       req.session.adminUsername = SUPERADMIN_USERNAME;
       req.session.adminRole = "superadmin";
       req.session.adminClasses = validClasses;
-      console.log("Superadmin login successful");
-      return res.json({ status: "success" });
+      
+      return req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Session error" });
+        }
+        console.log("Superadmin login successful, session saved");
+        return res.json({ status: "success" });
+      });
     }
+
+    const validClasses = await getValidClasses();
     
     // Check regular admin credentials
+    console.log("Checking regular admin:", trimmedUsername);
     const admin = await Admin.findOne({ username: trimmedUsername });
-    if (admin && admin.password === trimmedPassword) {
-      req.session.adminId = admin._id.toString();
-      req.session.adminUsername = admin.username;
-      req.session.adminRole = admin.role || "admin";
-      req.session.adminClasses = admin.managedClasses?.length
-        ? admin.managedClasses
-        : (Array.isArray(admin.classes) ? admin.classes.map(c => c.className) : []);
-      console.log("Admin login successful:", admin.username);
-      return res.json({ status: "success" });
+    if (admin) {
+      console.log("Admin found in database, checking password");
+      if (admin.password === trimmedPassword) {
+        req.session.adminId = admin._id.toString();
+        req.session.adminUsername = admin.username;
+        req.session.adminRole = admin.role || "admin";
+        req.session.adminClasses = admin.managedClasses?.length
+          ? admin.managedClasses
+          : (Array.isArray(admin.classes) ? admin.classes.map(c => c.className) : []);
+        
+        return req.session.save((err) => {
+          if (err) {
+            console.error("Session save error:", err);
+            return res.status(500).json({ message: "Session error" });
+          }
+          console.log("Admin login successful:", admin.username);
+          return res.json({ status: "success" });
+        });
+      } else {
+        console.log("Password mismatch for admin:", trimmedUsername);
+      }
+    } else {
+      console.log("Admin not found in database:", trimmedUsername);
     }
     
-    console.log("Login failed: Invalid credentials");
+    console.log("Login failed: Invalid credentials for", trimmedUsername);
     res.status(401).json({ message: "Invalid credentials" });
   } catch (err) {
     console.error("Login error:", err);
