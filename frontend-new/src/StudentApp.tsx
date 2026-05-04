@@ -7,6 +7,7 @@ import { QuizScreen } from "./screens/QuizScreen"
 import type { Question } from "./screens/QuizScreen"
 import { ResultScreen } from "./screens/ResultScreen"
 import type { ResultData } from "./screens/ResultScreen"
+import { apiFetch } from "@/lib/api"
 
 type Screen = "start" | "loading" | "analyzing" | "quiz" | "result"
 
@@ -35,7 +36,7 @@ export default function StudentApp() {
       const params = new URLSearchParams({ usn, quizCode: quizCodeInput, password })
       const url = `/api/quiz/random?${params.toString()}`
       
-      const res  = await fetch(url)
+      const res  = await apiFetch(url)
       
       if (!res.ok) {
         let errorMsg = `Failed to load quiz (Status: ${res.status})`;
@@ -83,7 +84,7 @@ export default function StudentApp() {
       const url = "/api/quiz"
       const requestBody = { name, usn, responses: currentAnswers }
 
-      const res  = await fetch(url, {
+      const res  = await apiFetch(url, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify(requestBody),

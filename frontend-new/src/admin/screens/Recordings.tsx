@@ -108,14 +108,14 @@ export const Recordings: React.FC = () => {
                   <div className="absolute inset-0 bg-black/40 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 backdrop-blur-[2px]">
                     <Button 
                       className="rounded-full bg-white text-slate-900 hover:bg-slate-100"
-                      onClick={() => window.open(`/api/proctor/stream/${r.filename}`, '_blank')}
+                      onClick={() => window.open(getApiUrl(`/api/proctor/stream/${r.filename}`), '_blank')}
                     >
                       <ExternalLink size={18} className="mr-2" />
                       Play
                     </Button>
                     <Button 
                       className="rounded-full bg-indigo-500 text-white hover:bg-indigo-600"
-                      onClick={() => window.open(`/api/proctor/download/${r.filename}`, '_blank')}
+                      onClick={() => window.open(getApiUrl(`/api/proctor/download/${r.filename}`), '_blank')}
                     >
                       <Download size={18} className="mr-2" />
                       Save

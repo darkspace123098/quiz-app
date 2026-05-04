@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import { getApiUrl } from "@/lib/api"
 
 export interface Question {
   _id: string
@@ -91,7 +92,7 @@ export function QuizScreen({
           quizId:              quizCode,
           contestantId:        studentUSN,
           contestantName:      studentName,
-          apiBaseUrl:          "/api/proctor",
+          apiBaseUrl:          getApiUrl("/api/proctor"),
           checkInterval:       1500,
           captureFrameInterval: 5000,
         })
