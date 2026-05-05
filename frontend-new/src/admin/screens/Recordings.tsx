@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Search, Video, Trash2, ExternalLink, Shield, AlertTriangle, Clock, Calendar, Download } from "lucide-react";
+import { Search, Video, Trash2, ExternalLink, Shield, AlertTriangle, Clock, Calendar, Download, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getApiUrl } from "@/lib/api";
 
 interface Recording {
   filename: string;
@@ -21,6 +21,7 @@ export const Recordings: React.FC = () => {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
 
   const fetchRecordings = async () => {
     try {
@@ -108,14 +109,14 @@ export const Recordings: React.FC = () => {
                   <div className="absolute inset-0 bg-black/40 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 backdrop-blur-[2px]">
                     <Button 
                       className="rounded-full bg-white text-slate-900 hover:bg-slate-100"
-                      onClick={() => window.open(getApiUrl(`/api/proctor/stream/${r.filename}`), '_blank')}
+                      onClick={() => setSelectedVideo(r.filename)}
                     >
-                      <ExternalLink size={18} className="mr-2" />
+                      <Video size={18} className="mr-2" />
                       Play
                     </Button>
                     <Button 
                       className="rounded-full bg-indigo-500 text-white hover:bg-indigo-600"
-                      onClick={() => window.open(getApiUrl(`/api/proctor/download/${r.filename}`), '_blank')}
+                      onClick={() => window.open(getApiUrl(`/api/proctor/download/${encodeURIComponent(r.filename)}`), '_blank')}
                     >
                       <Download size={18} className="mr-2" />
                       Save
@@ -155,6 +156,32 @@ export const Recordings: React.FC = () => {
           )}
         </div>
       </Card>
+
+      {/* Video Player Modal */}
+      {selectedVideo && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300"
+          onClick={() => setSelectedVideo(null)}
+        >
+          <div 
+            className="bg-slate-900 w-full max-w-4xl aspect-video rounded-3xl overflow-hidden shadow-2xl border border-white/10 relative animate-in zoom-in-95 duration-300"
+            onClick={e => e.stopPropagation()}
+          >
+            <video 
+              src={getApiUrl(`/api/proctor/stream/${encodeURIComponent(selectedVideo)}`)} 
+              controls 
+              autoPlay 
+              className="w-full h-full"
+            />
+            <button 
+              className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-2 rounded-full backdrop-blur-md transition-colors"
+              onClick={() => setSelectedVideo(null)}
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
