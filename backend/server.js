@@ -62,18 +62,20 @@ app.use("/api/quiz", quizRouter);
 app.use("/api/proctor", proctorRouter);
 app.use("/api/admin", adminRouter);
 
-// Serve frontend static files
-const publicPath = path.join(__dirname, "..", "frontend-new", "dist");
-app.use(express.static(publicPath));
+// Serve frontend static files only in production
+if (process.env.NODE_ENV === "production") {
+  const publicPath = path.join(__dirname, "..", "frontend-new", "dist");
+  app.use(express.static(publicPath));
 
-// SPA Fallback: for all non-API GET requests serve index.html so React Router handles them
-app.use((req, res, next) => {
-  if (req.method === "GET" && !req.path.startsWith("/api")) {
-    res.sendFile(path.join(publicPath, "index.html"));
-  } else {
-    next();
-  }
-});
+  // SPA Fallback: for all non-API GET requests serve index.html so React Router handles them
+  app.use((req, res, next) => {
+    if (req.method === "GET" && !req.path.startsWith("/api")) {
+      res.sendFile(path.join(publicPath, "index.html"));
+    } else {
+      next();
+    }
+  });
+}
 
 
 const PORT = process.env.PORT || 5000;

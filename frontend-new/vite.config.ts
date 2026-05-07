@@ -58,6 +58,7 @@ export default defineConfig({
     },
   },
   server: {
+    port: 5173,
     proxy: {
       // Proxy all /api/* requests from Vite (port 5173) → backend (port 5000)
       "/api": {
