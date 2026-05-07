@@ -1,93 +1,97 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   CheckCircle2, Shield, Zap, BarChart3, Users, Globe,
-  ChevronRight, ArrowRight, Star, PlayCircle, Lock
+  ChevronRight, ArrowRight, Star, PlayCircle, Lock, Menu, X
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import ThemeAwareLogo from "@/components/ThemeAwareLogo";
+import { ThemeToggle } from "@/components/ThemeToggle";
+
+const features = [
+  {
+    title: "AI-Powered Proctoring",
+    description: "Next-gen face detection and behavioral analysis that guarantees exam integrity.",
+    icon: <Shield className="w-12 h-12 text-purple-500" />,
+    tag: "Security"
+  },
+  {
+    title: "Instant Live Insights",
+    description: "Watch results stream in real-time with beautiful, data-rich visualizations.",
+    icon: <BarChart3 className="w-12 h-12 text-blue-500" />,
+    tag: "Analytics"
+  },
+  {
+    title: "Limitless Scaling",
+    description: "Our serverless architecture handles 1 or 100,000 contestants without a blink.",
+    icon: <Zap className="w-12 h-12 text-amber-500" />,
+    tag: "Performance"
+  },
+  {
+    title: "Collaborative Admin",
+    description: "Granular roles and permissions for seamless teamwork across your institution.",
+    icon: <Users className="w-12 h-12 text-emerald-500" />,
+    tag: "Teams"
+  },
+  {
+    title: "Enterprise Security",
+    description: "End-to-end encryption and ISO-compliant data handling for your peace of mind.",
+    icon: <Lock className="w-12 h-12 text-indigo-500" />,
+    tag: "Compliance"
+  },
+  {
+    title: "Global Reach",
+    description: "Localized in 20+ languages and optimized for even the slowest connections.",
+    icon: <Globe className="w-12 h-12 text-rose-500" />,
+    tag: "Global"
+  },
+];
+
+const pricing = [
+  {
+    name: "Free Trial",
+    price: "₹0",
+    description: "Experience the power of IntelliQuiz for free.",
+    features: ["Up to 10 Contestants", "Basic Proctoring", "1 Active Quiz", "Community Support"],
+  },
+  {
+    name: "Starter",
+    price: "₹299",
+    description: "Ideal for individual educators and small classes.",
+    features: ["Up to 100 Contestants", "Standard Proctoring", "10 Monthly Quizzes", "Email Support"],
+  },
+  {
+    name: "Professional",
+    price: "₹599",
+    description: "Full power for growing schools and organizations.",
+    features: ["Unlimited Contestants", "AI Video Proctoring", "Unlimited Quizzes", "Priority 24/7 Support"],
+    popular: true,
+  },
+  {
+    name: "Enterprise",
+    price: "Custom",
+    description: "White-labeled solutions for global institutions.",
+    features: ["SSO Integration", "Custom Domain", "Dedicated Manager", "On-premise Options"],
+  },
+];
 
 export default function LandingPage() {
-  const features = [
-    {
-      title: "AI-Powered Proctoring",
-      description: "Next-gen face detection and behavioral analysis that guarantees exam integrity.",
-      icon: <Shield className="w-12 h-12 text-purple-500" />,
-      tag: "Security"
-    },
-    {
-      title: "Instant Live Insights",
-      description: "Watch results stream in real-time with beautiful, data-rich visualizations.",
-      icon: <BarChart3 className="w-12 h-12 text-blue-500" />,
-      tag: "Analytics"
-    },
-    {
-      title: "Limitless Scaling",
-      description: "Our serverless architecture handles 1 or 100,000 contestants without a blink.",
-      icon: <Zap className="w-12 h-12 text-amber-500" />,
-      tag: "Performance"
-    },
-    {
-      title: "Collaborative Admin",
-      description: "Granular roles and permissions for seamless teamwork across your institution.",
-      icon: <Users className="w-12 h-12 text-emerald-500" />,
-      tag: "Teams"
-    },
-    {
-      title: "Enterprise Security",
-      description: "End-to-end encryption and ISO-compliant data handling for your peace of mind.",
-      icon: <Lock className="w-12 h-12 text-indigo-500" />,
-      tag: "Compliance"
-    },
-    {
-      title: "Global Reach",
-      description: "Localized in 20+ languages and optimized for even the slowest connections.",
-      icon: <Globe className="w-12 h-12 text-rose-500" />,
-      tag: "Global"
-    },
-  ];
-
-  const pricing = [
-    {
-      name: "Free Trial",
-      price: "₹0",
-      description: "Experience the power of IntelliQuiz for free.",
-      features: ["Up to 10 Contestants", "Basic Proctoring", "1 Active Quiz", "Community Support"],
-    },
-    {
-      name: "Starter",
-      price: "₹299",
-      description: "Ideal for individual educators and small classes.",
-      features: ["Up to 100 Contestants", "Standard Proctoring", "10 Monthly Quizzes", "Email Support"],
-    },
-    {
-      name: "Professional",
-      price: "₹599",
-      description: "Full power for growing schools and organizations.",
-      features: ["Unlimited Contestants", "AI Video Proctoring", "Unlimited Quizzes", "Priority 24/7 Support"],
-      popular: true,
-    },
-    {
-      name: "Enterprise",
-      price: "Custom",
-      description: "White-labeled solutions for global institutions.",
-      features: ["SSO Integration", "Custom Domain", "Dedicated Manager", "On-premise Options"],
-    },
-  ];
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-purple-500/30 font-sans">
 
       {/* Background Orbs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/10 blur-[120px] animate-pulse-slow"></div>
-        <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] rounded-full bg-blue-600/10 blur-[100px] animate-pulse-slow delay-500"></div>
-        <div className="absolute top-[40%] left-[60%] w-[20%] h-[20%] rounded-full bg-indigo-600/10 blur-[80px] animate-pulse-slow delay-200"></div>
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 opacity-50">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/5 blur-[80px] animate-pulse-slow"></div>
+        <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] rounded-full bg-blue-600/5 blur-[60px] animate-pulse-slow delay-500"></div>
+        <div className="absolute top-[40%] left-[60%] w-[20%] h-[20%] rounded-full bg-indigo-600/5 blur-[40px] animate-pulse-slow delay-200"></div>
       </div>
 
       {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 border-b bg-background/60 backdrop-blur-xl">
-        <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 h-16 lg:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-1 rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-600">
               <ThemeAwareLogo className="h-7 w-auto brightness-0 invert" />
@@ -97,10 +101,12 @@ export default function LandingPage() {
             </span>
           </div>
 
+          {/* Desktop Menu */}
           <div className="hidden lg:flex items-center gap-10">
             <a href="#features" className="text-sm font-semibold hover:text-purple-600 transition-colors uppercase tracking-widest">Features</a>
             <a href="#pricing" className="text-sm font-semibold hover:text-purple-600 transition-colors uppercase tracking-widest">Pricing</a>
             <div className="h-4 w-px bg-border"></div>
+            <ThemeToggle />
             <Link to="/admin/login">
               <Button variant="ghost" className="font-bold">Login</Button>
             </Link>
@@ -108,20 +114,43 @@ export default function LandingPage() {
               GET STARTED
             </Button>
           </div>
+
+          {/* Mobile Menu Button */}
+          <div className="flex lg:hidden items-center gap-4">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </Button>
+          </div>
         </div>
+
+        {/* Mobile menu panel */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden absolute top-20 left-0 w-full bg-background border-b animate-in slide-in-from-top duration-300">
+            <div className="flex flex-col p-6 space-y-4">
+              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold hover:text-purple-600">Features</a>
+              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold hover:text-purple-600">Pricing</a>
+              <div className="h-px bg-border"></div>
+              <Link to="/admin/login" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start font-bold">Login</Button>
+              </Link>
+              <Button className="w-full bg-purple-600 font-bold">GET STARTED</Button>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-44 pb-32 overflow-hidden">
-        <div className="container mx-auto px-6 text-center lg:text-left">
-          <div className="flex flex-col lg:flex-row items-center gap-20">
+      <section className="relative pt-24 pb-16 lg:pt-44 lg:pb-32 overflow-hidden">
+        <div className="container mx-auto px-4 sm:px-6 text-center lg:text-left">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
             <div className="flex-1 space-y-10 animate-slide-up">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border-purple-500/30 text-purple-600 text-sm font-bold tracking-wide">
                 <Star className="w-4 h-4 fill-purple-600" />
                 <span>#1 RATED QUIZ PLATFORM 2026</span>
               </div>
 
-              <h1 className="text-6xl lg:text-8xl font-black tracking-tighter leading-[0.9]">
+              <h1 className="text-4xl sm:text-6xl lg:text-8xl font-black tracking-tighter leading-[0.9]">
                 REINVENTING <br />
                 <span className="text-gradient">EXAMINATIONS.</span>
               </h1>
@@ -131,11 +160,11 @@ export default function LandingPage() {
                 Built for teams who demand absolute integrity and deep data.
               </p>
 
-              <div className="flex flex-col sm:flex-row items-center gap-6 pt-4">
-                <Button size="lg" className="h-16 px-10 text-lg font-bold bg-purple-600 hover:bg-purple-700 shadow-2xl shadow-purple-600/40 group">
+              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 pt-4">
+                <Button size="lg" className="w-full sm:w-auto h-14 lg:h-16 px-8 lg:px-10 text-base lg:text-lg font-bold bg-purple-600 hover:bg-purple-700 shadow-2xl shadow-purple-600/40 group">
                   Start Your Free Trial <ArrowRight className="ml-3 w-5 h-5 group-hover:translate-x-2 transition-transform" />
                 </Button>
-                <Button size="lg" variant="outline" className="h-16 px-10 text-lg font-bold border-2 gap-3 hover:bg-muted/50 transition-all">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto h-14 lg:h-16 px-8 lg:px-10 text-base lg:text-lg font-bold border-2 gap-3 hover:bg-muted/50 transition-all">
                   <PlayCircle className="w-6 h-6" /> Watch Demo
                 </Button>
               </div>
@@ -187,9 +216,9 @@ export default function LandingPage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 border-y bg-muted/20 backdrop-blur-sm">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-center">
+      <section className="py-12 lg:py-20 border-y bg-muted/20 backdrop-blur-sm">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 text-center">
             {[
               { label: "Quizzes Hosted", value: "2.4M+" },
               { label: "Fraud Prevented", value: "850K+" },
@@ -206,14 +235,14 @@ export default function LandingPage() {
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="py-32 relative overflow-hidden">
-        <div className="container mx-auto px-6">
-          <div className="text-center space-y-6 mb-24">
-            <h2 className="text-4xl lg:text-6xl font-black tracking-tight leading-none">
+      <section id="features" className="py-20 lg:py-32 relative overflow-hidden">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="text-center space-y-4 lg:space-y-6 mb-16 lg:mb-24">
+            <h2 className="text-3xl sm:text-4xl lg:text-6xl font-black tracking-tight leading-none">
               DESIGNED FOR THE <br />
               <span className="text-purple-600 italic">HIGHEST STAKES.</span>
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-medium">
+            <p className="text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto font-medium">
               We've over-engineered every detail to ensure you never have to worry about security, scale, or stability.
             </p>
           </div>
@@ -245,18 +274,18 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-32 bg-slate-950 text-white relative overflow-hidden">
+      <section id="pricing" className="py-20 lg:py-32 bg-slate-950 text-white relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full mesh-gradient opacity-40"></div>
 
-        <div className="container mx-auto px-6 relative z-10">
-          <div className="text-center space-y-6 mb-24">
-            <h2 className="text-4xl lg:text-6xl font-black tracking-tight">SCALE YOUR POTENTIAL</h2>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium">
+        <div className="container mx-auto px-4 sm:px-6 relative z-10">
+          <div className="text-center space-y-4 lg:space-y-6 mb-16 lg:mb-24">
+            <h2 className="text-3xl sm:text-4xl lg:text-6xl font-black tracking-tight">SCALE YOUR POTENTIAL</h2>
+            <p className="text-lg lg:text-xl text-slate-400 max-w-2xl mx-auto font-medium">
               Flexible pricing that grows with your organization. No hidden fees.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-10 items-stretch">
             {pricing.map((plan, i) => (
               <div
                 key={i}
