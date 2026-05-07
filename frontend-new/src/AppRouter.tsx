@@ -10,6 +10,7 @@ import { Recordings } from "./admin/screens/Recordings";
 import { Classes } from "./admin/screens/Classes";
 import { AddAdmin } from "./admin/screens/AddAdmin";
 import StudentApp from "./StudentApp";
+import LandingPage from "./screens/LandingPage";
 
 const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { admin, loading } = useAdmin();
@@ -39,8 +40,11 @@ export default function AppRouter() {
   return (
     <AdminProvider>
       <Routes>
+        {/* Landing Page */}
+        <Route path="/" element={<LandingPage />} />
+
         {/* Student Routes */}
-        <Route path="/*" element={<StudentApp />} />
+        <Route path="/quiz/*" element={<StudentApp />} />
 
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />

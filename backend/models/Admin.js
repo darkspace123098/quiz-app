@@ -49,6 +49,11 @@ const adminSchema = new mongoose.Schema(
       enum: ["admin", "superadmin"],
       default: "admin",
     },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: true,
+    },
     managedClasses: [
       {
         type: String,
